@@ -1,16 +1,5 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% pss_decoding(waveform, nfft, sample_rate)
-% Input:
-%   waveform - 5g downlink data vector
-%   nfft - data fft size
-%   nb_rb - number of allocated resource blocks
-%   threshold - threshold for sequence correlation detection
-% Output:
-%   indxs - positions of every detected pss sequence
-%   NID2 - signal correct NID2
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [indxes, NID2] = pss_detect(waveform, nfft, threshold, offset)
-%PSS_DETECT Detect PSS sequences in waveform
+function [indxes, NID2] = pss_detect_and_decode(waveform, nfft, threshold, offset)
+%PSS_DETECT_AND_DECODE Detect and decode PSS sequences in waveform
 % Inputs:
 %   waveform    : a vector representing the 5G signal
 %   nfft        : a number representing the FFT size
@@ -20,13 +9,14 @@ function [indxes, NID2] = pss_detect(waveform, nfft, threshold, offset)
 %   sequence in the 5G signal
 % Outputs:
 %   indexes     : a vector representing the detected PSS indexes
-%   NID2        : a number representing the NID2 of the detected PSS
+%   NID2        : a vector representing the detected PSS NID2
 
     if (isrow(waveform))
         waveform = waveform.';
     end
     N_PSS = 127;    % PSS length
     
+    pss_ref = [pss_generate(0).', pss_generate(1).', pss_generate(2).'];
     pss_start = nfft/2 - floor(N_PSS/2) + offset;
     m_seqs = zeros(nfft, 3);
     m_seqs(pss_start:pss_start+N_PSS-1, :) = pss_ref;
@@ -45,16 +35,16 @@ function [indxes, NID2] = pss_detect(waveform, nfft, threshold, offset)
     subplot(313); plot(corrPSS(:, 3));
     title('Cross-correlation with sequence NID2 = 2'); xlabel('sample index n');
 
-    [~, NID2] = max(max(corrPSS));
-    corrPSS = corrPSS(:, NID2);
-    NID2 = NID2-1;
-
     %find index of every detected pss sequence 
     idx = 1;
     indxes = double.empty;
+    NID2 = double.empty;
     for pos = 2:length(corrPSS)
-        if ((corrPSS(pos) > threshold) && (corrPSS(pos) > corrPSS(pos-1)) && (corrPSS(pos) > corrPSS(pos+1)))
+        [max_corr, max_NID2] = max(corrPSS(pos, :));
+        if ((max_corr > threshold) && (max_corr > corrPSS(pos-1, max_NID2))...
+                && (max_corr > corrPSS(pos+1, max_NID2)))
             indxes(idx) = pos;
+            NID2(idx) = max_NID2 - 1;
             idx = idx + 1;
         end
     end
