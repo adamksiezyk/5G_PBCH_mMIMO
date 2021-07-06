@@ -6,7 +6,7 @@ signal_choice = 1;
 if (signal_choice == 1)
     load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
     sample_rate = 61.44e6;
-    waveform = waveform(1:20.5e-3*sample_rate).';    % First 2.5 frames
+    waveform = waveform(1:25.0e-3*sample_rate).';    % First 2.5 frames
     fc = 3440e6;
     bw = 50e6;
     nfft = 2048;
@@ -193,4 +193,73 @@ for i = 1:length(pss_indexes)
     fprintf("CellID = %d\n", cellid(i));
     fprintf("Press ENTER to continue ...\n");
     pause;
+    
+    % ##################
+    % ##################
+    % ##################
+    
+    if(1)
+    
+    SS_block = SSB;
+    do_FEQ = 1;
+    
+    %find correct issb for extracted SS block
+    issb = pbchdmrs_decode( cellid(i), SS_block );
+    pause
+
+    %find indicates for PBCH
+    pbch_pos = PBCHposition( cellid(i) );
+
+    %channel estimation 
+    ref_dmrs = generate_dmrs( cellid(i), issb );
+    rx_dmrs = SS_block(PBCHDMRSposition( cellid(i) )).';
+    hest = rx_dmrs .* conj(ref_dmrs);
+    %extend channel estimation to PBCH samples
+    hest = hest + [0;0;0];
+    pbch_hest = hest(:);
+
+    %PBCH correction
+    pbch_sym = SS_block(pbch_pos);
+    if(do_FEQ)
+        pbch_eq = pbch_sym ./ pbch_hest;
+    else
+        pbch_eq = pbch_sym;
+    end
+    %show PBCH constellation
+    figure; plot(pbch_eq, 'o');
+    title('PBCH constellation'); xlabel('In-Phase'); ylabel('Quadrature');
+    pause
+
+    %MIB decoding using 5G toolbox functions
+    v = mod(issb, 4);
+    pbchBits = nrPBCHDecode(pbch_eq, cellid(i), v, 1e-2);
+    
+    polarListLength = 8;
+    [~, crcBCH, trblk, sfn4lsb, nHalfFrame, msbidxoffset] = ...
+        nrBCHDecode(pbchBits, polarListLength, 4, cellid(i));
+    
+    % Display the BCH CRC and ssb index
+    disp([' BCH CRC: ' num2str(crcBCH)]);
+    disp([' SSB index: ' num2str(v)]);
+
+    k_SSB = msbidxoffset * 16;
+    commonSCSs = [15 30];
+    
+    % Create a structure of MIB fields from the decoded MIB bits. The BCH
+    % transport block 'trblk' is the RRC message BCCH-BCH-Message, consisting
+    % of a leading 0 bit then 23 bits corresponding to the MIB
+    mib.NFrame = bi2de([trblk(2:7); sfn4lsb] .','left-msb');
+    mib.SubcarrierSpacingCommon = commonSCSs(trblk(8) + 1);
+    mib.k_SSB = k_SSB + bi2de(trblk(9:12).','left-msb');
+    mib.DMRSTypeAPosition = 2 + trblk(13);
+    mib.PDCCHConfigSIB1 = bi2de(trblk(14:21).','left-msb');
+    mib.CellBarred = trblk(22);
+    mib.IntraFreqReselection = trblk(23);
+
+    % Display the MIB structure
+    disp(' BCH/MIB Content:')
+    disp(mib);
+    pause
+
+    end    
 end
