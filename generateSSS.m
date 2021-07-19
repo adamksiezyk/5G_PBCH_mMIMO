@@ -1,9 +1,6 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% sss_generate(NID1, NID2)
-% generate SSS sequence for given NID1 and NID2
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function seq = sss_generate(NID1, NID2)
-    %[38.211 7.4.2.3.1]
+function seq = generateSSS(NID1, NID2)
+%GENERATESSS Generates the SSS squence besed on the provided NID1 and NID2
+%and 3GPP TS 38.211 7.4.2.3.1
     x0_table = zeros(1, 127);
     x0_table(1:7) = [1 0 0 0 0 0 0];
     x1_table = zeros(1, 127);

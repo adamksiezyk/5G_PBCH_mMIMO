@@ -1,5 +1,6 @@
-function [N_CP_long, N_CP, N_ECP_long, N_ECP] = get_n_cp(scs, sample_rate)
-%GET_N_CP Calculates the length of cyclic prefix, long cyclic prefix
+function [N_CP_long, N_CP, N_ECP_long, N_ECP] = getCPLength(scs, ...
+    sample_rate)
+%GETCPLENGTH Calculates the length of cyclic prefix, long cyclic prefix
 %and extended cyclic prefix in samples based on 3GPP TS 38.211 5.3.1
 % Inputs:
 %   scs             : a number representing the subcarrier spacing in Hz

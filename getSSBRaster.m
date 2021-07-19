@@ -1,5 +1,5 @@
-function raster = ssb_raster(fc, bw, scs)
-%SSB_RASTER Constructs SSB raster in subcarrier offsets based on
+function raster = getSSBRaster(fc, bw, scs)
+%GETSSBRASTER Constructs SSB raster in subcarrier offsets based on
 %   3GPP TS 38.104 5.4.3.1-1
 % Inputs:
 %   fc     : a number representing the carrier frequency in Hz

@@ -1,5 +1,5 @@
-function search_results = ssb_search(waveform, nfft, raster)
-%SSB_SEARCH Searches through all potential SSB frequency positions
+function search_results = findSSB(waveform, nfft, raster)
+%FINDSSB Searches through all potential SSB frequency positions
 % Inputs:
 %   waveform    : a vector representing the signal
 %   nfft        : a number representing the FFT size
@@ -15,7 +15,7 @@ function search_results = ssb_search(waveform, nfft, raster)
         waveform = waveform.';
     end
     N_PSS = 127;
-    pss_ref = [pss_generate(0).', pss_generate(1).', pss_generate(2).'];
+    pss_ref = [generatePSS(0).', generatePSS(1).', generatePSS(2).'];
     search_results = zeros(length(raster), 2);
     status = '';
     fprintf("Searching for SSB frequency position:\t");

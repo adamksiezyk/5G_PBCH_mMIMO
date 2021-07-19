@@ -1,5 +1,5 @@
-function N_RB = get_n_rb(scs, bw)
-%GET_N_RB Calculates the number of resource blocks according to 3GPP TS
+function N_RB = getRBAmount(scs, bw)
+%GETRBAMOUNT Calculates the number of resource blocks according to 3GPP TS
 %38.101 5.3.2-1
 % Inputs:
 %   scs     : a number representing the subcarrier spacing in Hz
