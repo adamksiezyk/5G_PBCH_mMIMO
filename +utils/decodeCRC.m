@@ -10,7 +10,7 @@ function [block, err] = decodeCRC(crc_block, polynomial)
     gLen(:) = getPolyLength(polynomial);
     
     % Perform cyclic redundancy check for data (only part of CRC block)
-    reEncodedBlk = encodeCRC(crc_block(1:end-gLen,:), polynomial);
+    reEncodedBlk = utils.encodeCRC(crc_block(1:end-gLen,:), polynomial);
     [codeLen, numCodeBlocks] = size(crc_block);
     if isempty(crc_block)
         block = zeros(0, numCodeBlocks, class(crc_block));

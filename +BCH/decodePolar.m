@@ -348,7 +348,7 @@ function output = SCLDecode(input, F, L, iIL, N_CRC)
             out = canMsg;
             
             % Check CRC: errFlag is 1 for error, 0 for no errors
-            [~, errFlag] = decodeCRC(out, polyStr);
+            [~, errFlag] = utils.decodeCRC(out, polyStr);
             if errFlag      % ~0 => fail
                 continue;   % move to next path
             end

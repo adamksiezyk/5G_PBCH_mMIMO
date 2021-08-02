@@ -25,7 +25,8 @@ function [indxes, NID2] = detectAndDecodePSS(waveform, nfft, threshold, ...
     end
     N_PSS = 127;    % PSS length
     
-    pss_ref = [generatePSS(0).', generatePSS(1).', generatePSS(2).'];
+    pss_ref = [PSS.generatePSS(0).', PSS.generatePSS(1).', ...
+        PSS.generatePSS(2).'];
     pss_start = nfft/2 - floor(N_PSS/2) + subcarrier_offset;
     m_seqs = zeros(nfft, 3);
     m_seqs(pss_start:pss_start+N_PSS-1, :) = pss_ref;

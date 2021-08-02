@@ -42,7 +42,7 @@ function [scr_block, err_flag, BCCH_BCH_msg, SFN_4_LSB, HRF, kSSB_MSB] ...
     dec_block = BCH.decodePolar(rec_block, K, E, n_max, n_PC, L, iIL, N_CRC);
     
     % CRC decoding 7.1.3
-    [scr_block, err_flag] = decodeCRC(dec_block, poly_CRC);
+    [scr_block, err_flag] = utils.decodeCRC(dec_block, poly_CRC);
     
     % Descrambling 7.1.2
     tr_block = BCH.descramble(scr_block, cell_id, L_SSB);

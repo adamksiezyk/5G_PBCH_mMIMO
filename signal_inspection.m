@@ -202,7 +202,7 @@ end
 
 %% Finding SSB position in time domain and detecting PSS
 fprintf("Find SSB position in time domain\n");
-[pss_indexes, NID2] = detectAndDecodePSS(waveform, nfft, threshold, ...
+[pss_indexes, NID2] = PSS.detectAndDecodePSS(waveform, nfft, threshold, ...
     ssb_pos, show_plots);
 pss_indexes = pss_indexes - N_sym + 1;
 if show_plots
@@ -239,7 +239,7 @@ for i = 1:length(pss_indexes)
     end
 
     % Decoding SSS, searching for NID1
-    NID1(i) = decodeSSS(SSB(57:183, 3).', NID2(i), show_plots);
+    NID1(i) = SSS.decodeSSS(SSB(57:183, 3).', NID2(i), show_plots);
     fprintf("NID1 = %d\n", NID1(i));
 
     % PCI calculation
