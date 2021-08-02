@@ -9,7 +9,7 @@ function pbch_dmrs = generatePBCHDMRS(cellid, issb)
 
     c_init = 2^11 * (issb+1) * (fix(cellid/4) + 1) + 2^6 * (issb+1) + ...
         (mod(cellid, 4));
-    c_seq = generate_pr_sequence(c_init, 2*144);
+    c_seq = utils.generatePRBS(2*144, c_init);
     pbch_dmrs = zeros(1, 144);
     for n = 1:144
         pbch_dmrs(n) = (1 - 2*c_seq(2*(n-1)+1))/sqrt(2) + ...

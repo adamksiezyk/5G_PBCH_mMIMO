@@ -2,11 +2,13 @@ clear variables; close all;
 %% Load waveform and initial parameters
 fprintf("Loading waveform and initial parameters\n");
 
-signal_choice = 2;
+show_plots = false;
+signal_choice = 1;
 if (signal_choice == 1)
     load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
     sample_rate = 61.44e6;
-    waveform = waveform(1:25.0e-3*sample_rate).';    % First 2.5 frames
+    %waveform = waveform(1:25.0e-3*sample_rate).';    % First 2.5 frames
+    waveform = waveform.';
     fc = 3440e6;
     bw = 50e6;
     nfft = 2048;
@@ -14,6 +16,7 @@ if (signal_choice == 1)
     threshold = 2e5;
     ssb_pos = -507; % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency Offset
+    L_SSB = 8;      % maximum SSB amount in one half frame 3GPP TS 38.213 4.1
 elseif (signal_choice == 2)
     load('signals/Fn001_chan1.mat');
     sample_rate = 61.44e6;
@@ -23,8 +26,9 @@ elseif (signal_choice == 2)
     nfft = 2048;
     scs = 30e3;
     threshold = 2e5;
-    %ssb_pos = -507; % SSB frequency position
-    %int_CFO = 0;    % Integer Center Frequency Offset
+    ssb_pos = -507; % SSB frequency position
+    int_CFO = 0;    % Integer Center Frequency Offset
+    L_SSB = 8;      % maximum SSB amount in one half frame 3GPP TS 38.213 4.1
 elseif (signal_choice == 3)
     load('Signals/NR_DL_2159.91MHz_10MHz.mat'); %ncellid = 440
     fc = 2159.91e6;
@@ -34,26 +38,30 @@ elseif (signal_choice == 3)
     scs = 15e3;
     threshold = 60; %
     ssb_pos = -48;  % SSB frequency position
+    int_CFO = 0;    % Integer Center Frequency offset
+    L_SSB = 8;      % maximum SSB amount in one half frame 3GPP TS 38.213 4.1
 end
 
 N = length(waveform);
-[N_CP_long, N_CP] = getCPLength(scs, sample_rate);
+[N_CP_long, N_CP] = utils.getCPLength(scs, sample_rate);
 N_sym_long = nfft + N_CP_long;
 N_sym = nfft + N_CP;
-N_RB = getRBAmount(scs, bw);
+N_RB = utils.getRBAmount(scs, bw);
 N_SSB = 240;
 N_PSS = 127;
 
 %% Plot the signal PSD and Spectrogram
-fprintf("Signal PSD and Spectrigram\n");
-figure;
-pwelch(waveform, 2048, 2048-1024, 2048, sample_rate, 'centered');
+if show_plots
+    fprintf("Signal PSD and Spectrigram\n");
+    figure;
+    pwelch(waveform, 2048, 2048-1024, 2048, sample_rate, 'centered');
 
-figure;
-f = sample_rate/2048 * (-1024:1023);
-spectrogram(waveform, 2048, 1024, f, sample_rate);
-fprintf("Press ENTER to continue ...\n");
-pause;
+    figure;
+    f = sample_rate/2048 * (-1024:1023);
+    spectrogram(waveform, 2048, 1024, f, sample_rate);
+    fprintf("Press ENTER to continue ...\n");
+    pause;
+end
 
 %% Signal autocorelation
 fprintf("Signal autocorelation\n");
@@ -67,12 +75,14 @@ for n = 1:N_corr
         sum(waveform(n2) .* conj(waveform(n2)))));
     corrCP(n) = (a1*a1) / (b1*b1);
 end
-figure;
-plot(corrCP);
-title('Signal autocorrelation using CP');
-xlabel('Sample index n');
-fprintf("Press ENTER to continue ...\n");
-pause;
+if show_plots
+    figure;
+    plot(corrCP);
+    title('Signal autocorrelation using CP');
+    xlabel('Sample index n');
+    fprintf("Press ENTER to continue ...\n");
+    pause;
+end
 
 %% Fractional CFO estimation and correction
 fprintf("Fractional CFO estimation and correction\n");
@@ -124,41 +134,45 @@ for n = 1:length(cp_pos)
         waveform(n2)) / (2*pi));
 end
 
-figure;
-plot(cp_pos, indv_CFO, 'o-');
-title('Estimated fractional CFO');
-xlabel('sample index n');
-ylabel('[Hz]');
-
 % correct signal with mean of different CFO values
 frc_CFO = mean(indv_CFO);
 fprintf("Fractional CFO = %.2f\n", frc_CFO);
 waveform = waveform .* exp(-1j*2*pi * frc_CFO/sample_rate *(0:N-1));
 
-hold on;
-yline(frc_CFO, 'k-');
-legend("individual fractional CFO", "mean fractional CFO");
-fprintf("Press ENTER to continue ...\n");
-pause;
+if show_plots
+    figure;
+    plot(cp_pos, indv_CFO, 'o-');
+    title('Estimated fractional CFO');
+    xlabel('sample index n');
+    ylabel('[Hz]');
 
-%% Find SSB in frequency domain
+    hold on;
+    yline(frc_CFO, 'k-');
+    legend("individual fractional CFO", "mean fractional CFO");
+    fprintf("Press ENTER to continue ...\n");
+    pause;
+end
+
+%% Finding SSB in frequency domain
 if (exist('ssb_pos', 'var') ~= 1)
     fprintf("Find SSB in frequency domian\n");
-    raster = getSSBRaster(fc, bw, scs);
+    raster = utils.getSSBRaster(fc, bw, scs);
     search_results = findSSB(waveform, nfft, raster);
     [max_val, max_ind] = max(search_results(:, 1));
     ssb_pos = raster(max_ind);
 
-    figure;
-    hold on;
-    stem(raster, search_results(:, 1));
-    plot(ssb_pos, max_val, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
-    title("SSB frequency position search results");
-    ylabel("Maximum of xcorr");
-    xlabel("Subcarrier offset");
-    legend("correlation result", "SSB position");
-    fprintf("Press ENTER to continue ...\n");
-    pause;
+    if show_plots
+        figure;
+        hold on;
+        stem(raster, search_results(:, 1));
+        plot(ssb_pos, max_val, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
+        title("SSB frequency position search results");
+        ylabel("Maximum of xcorr");
+        xlabel("Subcarrier offset");
+        legend("correlation result", "SSB position");
+        fprintf("Press ENTER to continue ...\n");
+        pause;
+    end
 end
 
 %% Integer CFO estimation and correction
@@ -172,27 +186,31 @@ if (exist('int_CFO', 'var') ~= 1)
     fprintf("Integer CFO: %d\n", int_CFO);
     waveform = waveform .* exp(-1j*2*pi * int_CFO/nfft * (0:N-1));
 
-    figure;
-    hold on;
-    plot(offsets, search_results(:, 1));
-    plot(int_CFO, max_val, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
-    title("SSB frequency offset search results");
-    ylabel("Maximum of xcorr");
-    xlabel("Subcarrier offset");
-    legend("correlation result", "intefer CFO");
+    if show_plots
+        figure;
+        hold on;
+        plot(offsets, search_results(:, 1));
+        plot(int_CFO, max_val, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
+        title("SSB frequency offset search results");
+        ylabel("Maximum of xcorr");
+        xlabel("Subcarrier offset");
+        legend("correlation result", "intefer CFO");
+        fprintf("Press ENTER to continue ...\n");
+        pause;
+    end
+end
+
+%% Finding SSB position in time domain and detecting PSS
+fprintf("Find SSB position in time domain\n");
+[pss_indexes, NID2] = detectAndDecodePSS(waveform, nfft, threshold, ...
+    ssb_pos, show_plots);
+pss_indexes = pss_indexes - N_sym + 1;
+if show_plots
     fprintf("Press ENTER to continue ...\n");
     pause;
 end
 
-%% Find SSB position in time domain and detect PSS
-fprintf("Find SSB position in time domain\n");
-[pss_indexes, NID2] = detectAndDecodePSS(waveform, nfft, threshold, ...
-    ssb_pos);
-pss_indexes = pss_indexes - N_sym + 1;
-fprintf("Press ENTER to continue ...\n");
-pause;
-
-%% Detect SSS
+%% Decoding each PBCH, MIB
 NID1 = zeros(1, length(NID2));
 cellid = zeros(1, length(NID2));
 for i = 1:length(pss_indexes)
@@ -220,33 +238,35 @@ for i = 1:length(pss_indexes)
             nfft/2-N_SSB/2+1+ssb_pos:nfft/2+N_SSB/2+ssb_pos);
     end
 
-    % Searching for NID1
-    NID1(i) = decodeSSS(SSB(57:183, 3).', NID2(i));
+    % Decoding SSS, searching for NID1
+    NID1(i) = decodeSSS(SSB(57:183, 3).', NID2(i), show_plots);
     fprintf("NID1 = %d\n", NID1(i));
 
     % PCI calculation
     cellid(i) = 3 * NID1(i) + NID2(i);
     fprintf("CellID = %d\n", cellid(i));
-    fprintf("Press ENTER to continue ...\n");
-    pause;
     
-    % ##################
-    % ##################
-    % ##################
+    if show_plots
+        fprintf("Press ENTER to continue ...\n");
+        pause;
+    end
     
-    % Find indicates for PBCH
-    [pbch_pos, pbch_dmrs_pos] = getPBCHPosition(cellid(i));
+    % Get PBCH indices
+    [pbch_pos, pbch_dmrs_pos] = PBCH.getPBCHPosition(cellid(i));
     
     % Find correct issb for PBCH DM-RS
     fprintf("Find i_SSB\n");
     pbch_dmrs = SSB(pbch_dmrs_pos).';
-    issb = decodePBCHDMRS(cellid(i), pbch_dmrs);
-    fprintf("Press ENTER to continue ...\n");
-    pause;
+    issb = PBCH.decodePBCHDMRS(cellid(i), pbch_dmrs, show_plots);
+    
+    if show_plots
+        fprintf("Press ENTER to continue ...\n");
+        pause;
+    end
 
     % Channel estimation
     fprintf("Channel estimation and correction and PBCH decoding\n");
-    ref_pbch_dmrs = generatePBCHDMRS(cellid(i), issb);
+    ref_pbch_dmrs = PBCH.generatePBCHDMRS(cellid(i), issb);
     h_est = pbch_dmrs .* conj(ref_pbch_dmrs);
     % Extend channel estimation to PBCH samples
     h_est = h_est + [0;0;0];
@@ -257,56 +277,45 @@ for i = 1:length(pss_indexes)
     pbch_eq = pbch ./ h_est;
     
     % Show PBCH constellation diagram
-    constellation_ref = [1+1i, -1+1i, -1-1i, 1-1i] ./ sqrt(2);
-    
-    figure;
-    hold on;
-    plot(pbch_eq, 'o');
-    plot(constellation_ref, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
-    title('PBCH constellation diagram');
-    xlabel('In-Phase');
-    ylabel('Quadrature');
+    if show_plots
+        constellation_ref = [1+1i, -1+1i, -1-1i, 1-1i] ./ sqrt(2);
+        figure;
+        hold on;
+        plot(pbch_eq, 'o');
+        plot(constellation_ref, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
+        title('PBCH constellation diagram');
+        xlabel('In-Phase');
+        ylabel('Quadrature');
+        fprintf("Press ENTER to continue ...\n");
+        pause;
+    end
 
-    % MIB decoding using 5G toolbox functions
+    % Decode PBCH
     modulation_order = 2^2;
     modulation_vector = [3, 1, 0, 2];
     n_var = 1e-10;
     
-    v = mod(issb, 8);
+    v = mod(issb, 8); % ??? 8, 4 or L_SSB?
     pbchBits_ = comm.internal.qam.demodulate(pbch_eq, 2^2, 'custom', ...
             [3 1 0 2], 1, 'bit', 1e-10);
     pbchBits = nrPBCHDecode(pbch_eq, cellid(i), v, 1e-2);
-    fprintf("Press ENTER to continue ...\n");
-    pause;
     
-    fprintf("MIB decoding\n");
+    % Decode BCH
+    fprintf("BCH and MIB decoding\n");
     polarListLength = 8;
-    [~, crcBCH_, trblk_, sfn4lsb_, nHalfFrame_, msbidxoffset_] = ...
-        nrBCHDecode(pbchBits_, polarListLength, 8, cellid(i));
-    [~, crcBCH, trblk, sfn4lsb, nHalfFrame, msbidxoffset] = ...
-        nrBCHDecode(pbchBits, polarListLength, 8, cellid(i));
+    [~, BCH_CRC, tr_block, SFN_4_LSB, n_half_frame, kSSB_MSB] = ...
+        BCH.decodeBCH(pbchBits, L_SSB, cellid(i));
     
     % Display the BCH CRC and ssb index
-    disp([' BCH CRC: ' num2str(crcBCH)]);
-    disp([' SSB index: ' num2str(v)]);
-
-    k_SSB = msbidxoffset * 16;
-    commonSCSs = [15 30];
+    fprintf("BCH CRC: %d\n", BCH_CRC);
+    fprintf("SSB index: %d\n", v);
     
-    % Create a structure of MIB fields from the decoded MIB bits. The BCH
-    % transport block 'trblk' is the RRC message BCCH-BCH-Message,
-    % consisting of a leading 0 bit then 23 bits corresponding to the MIB
-    mib.NFrame = bi2de([trblk(2:7); sfn4lsb] .','left-msb');
-    mib.SubcarrierSpacingCommon = commonSCSs(trblk(8) + 1);
-    mib.k_SSB = k_SSB + bi2de(trblk(9:12).','left-msb');
-    mib.DMRSTypeAPosition = 2 + trblk(13);
-    mib.PDCCHConfigSIB1 = bi2de(trblk(14:21).','left-msb');
-    mib.CellBarred = trblk(22);
-    mib.IntraFreqReselection = trblk(23);
+    % Decode MIB
+    MIB = BCH.decodeMIB(tr_block, SFN_4_LSB, kSSB_MSB);
 
     % Display the MIB structure
-    disp(' BCH/MIB Content:')
-    disp(mib);
+    fprintf("MIB:\n");
+    disp(MIB);
     fprintf("Press ENTER to continue ...\n");
     pause;
 end
