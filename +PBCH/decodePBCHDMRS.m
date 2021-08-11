@@ -1,4 +1,4 @@
-function issb = decodePBCHDMRS(cellid, dmrs, show_plots_)
+function [issb, max_val] = decodePBCHDMRS(cellid, dmrs, show_plots_)
 %DECODEPBCHDMRS Returns the SSB index based on the given Cell ID and PBCH
 %DM-RS sequence
 % Inputs:

@@ -33,6 +33,8 @@ function [N_CP_long, N_CP, N_ECP_long, N_ECP] = getCPLength(scs, ...
     elseif (scs == 240e3)
         CP_len_long = 1.11e-6;
         CP_len = 0.29e-6;
+    else
+        error('Wrong SCS provided');
     end
     N_CP_long = round(CP_len_long * sample_rate);
     N_CP = round(CP_len * sample_rate);

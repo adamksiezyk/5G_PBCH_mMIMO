@@ -24,6 +24,8 @@ function N_RB = getRBAmount(scs, bw)
             N_RB = 216;
         elseif (bw == 50e6)
             N_RB = 270;
+        else
+            error('Wrong BW provided');
         end
     elseif (scs == 30e3)
         if (bw == 5e6)
@@ -50,6 +52,8 @@ function N_RB = getRBAmount(scs, bw)
             N_RB = 245;
         elseif (bw == 100e6)
             N_RB = 273;
+        else
+            error('Wrong BW provided');
         end
     elseif (scs == 60e3)
         if (bw == 10e6)
@@ -74,7 +78,11 @@ function N_RB = getRBAmount(scs, bw)
             N_RB = 121;
         elseif (bw == 100e6)
             N_RB = 135;
+        else
+            error('Wrong BW provided');
         end
+    else
+        error('Wrong SCS provided');
     end
 end
 

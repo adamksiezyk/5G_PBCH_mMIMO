@@ -2,8 +2,8 @@ clear variables; close all;
 %% Load waveform and initial parameters
 fprintf("Loading waveform and initial parameters\n");
 
-show_plots = false;
-signal_choice = 3;
+show_plots = true;
+signal_choice = 4;
 if (signal_choice == 1)
     load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
     sample_rate = 61.44e6;
@@ -37,6 +37,17 @@ elseif (signal_choice == 3)
     threshold = 60; %
     ssb_pos = -48;  % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency offset
+elseif (signal_choice == 4)
+    load('signals/matlab_5g_downlink_5MHzBW_30kHzSCS.mat');
+    sample_rate = 15360000;
+    waveform = tmp_waveform.';
+    fc = 3e9;
+    bw = 10e6;
+    nfft = 512;
+    scs = 30e3;
+    threshold = 8;
+    ssb_pos = 0;
+    int_CFO = 0;
 end
 
 N = length(waveform);
@@ -63,7 +74,7 @@ end
 
 %% Signal autocorelation
 fprintf("Signal autocorelation\n");
-N_corr = min(N-N_sym, 40e-3*sample_rate);
+N_corr = min(N-N_sym);%, 40e-3*sample_rate);
 corrCP = zeros(1, N_corr);
 for n = 1:N_corr
     n1 = n:n+N_CP-1; 
@@ -209,8 +220,10 @@ if show_plots
 end
 
 %% Decoding each PBCH, MIB
-NID1 = zeros(1, length(NID2));
-cellid = zeros(1, length(NID2));
+NID1 = zeros(1, length(pss_indexes));
+cellid = zeros(1, length(pss_indexes));
+issb = zeros(1, length(pss_indexes));
+snr = zeros(1, length(pss_indexes));
 for i = 1:length(pss_indexes)
     fprintf("Decoding Cell ID\n");
     pss_pos = pss_indexes(i);
@@ -255,7 +268,8 @@ for i = 1:length(pss_indexes)
     % Find correct issb for PBCH DM-RS
     fprintf("Find i_SSB\n");
     pbch_dmrs = SSB(pbch_dmrs_pos).';
-    issb = PBCH.decodePBCHDMRS(cellid(i), pbch_dmrs, show_plots);
+    [issb(i), snr(i)] = PBCH.decodePBCHDMRS(cellid(i), pbch_dmrs, ...
+        show_plots);
     
     if show_plots
         fprintf("Press ENTER to continue ...\n");
@@ -264,7 +278,7 @@ for i = 1:length(pss_indexes)
 
     % Channel estimation
     fprintf("Channel estimation and correction and PBCH decoding\n");
-    ref_pbch_dmrs = PBCH.generatePBCHDMRS(cellid(i), issb);
+    ref_pbch_dmrs = PBCH.generatePBCHDMRS(cellid(i), issb(i));
     h_est = pbch_dmrs .* conj(ref_pbch_dmrs);
     % Extend channel estimation to PBCH samples
     h_est = h_est + [0;0;0];
@@ -293,7 +307,7 @@ for i = 1:length(pss_indexes)
     modulation_vector = [3, 1, 0, 2];
     n_var = 1e-10;
     
-    v = mod(issb, 8); % ??? 8, 4 or L_SSB?
+    v = mod(issb(i), 8); % ??? 8, 4 or L_SSB?
     pbchBits_ = comm.internal.qam.demodulate(pbch_eq, 2^2, 'custom', ...
             [3 1 0 2], 1, 'bit', 1e-10);
     pbchBits = nrPBCHDecode(pbch_eq, cellid(i), v, 1e-2);
@@ -309,11 +323,12 @@ for i = 1:length(pss_indexes)
     fprintf("SSB index: %d\n", v);
     
     % Decode MIB
-    MIB = BCH.decodeMIB(tr_block, SFN_4_LSB, kSSB_MSB);
+    MIB(i) = BCH.decodeMIB(tr_block, SFN_4_LSB, kSSB_MSB);
 
     % Display the MIB structure
     fprintf("MIB:\n");
-    disp(MIB);
+    disp(MIB(i));
     fprintf("Press ENTER to continue ...\n");
     pause;
 end
+
