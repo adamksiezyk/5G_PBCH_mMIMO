@@ -3,7 +3,7 @@ clear variables; close all;
 fprintf("Loading waveform and initial parameters\n");
 
 show_plots = false;
-signal_choice = 1;
+signal_choice = 3;
 if (signal_choice == 1)
     load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
     sample_rate = 61.44e6;
@@ -16,7 +16,6 @@ if (signal_choice == 1)
     threshold = 2e5;
     ssb_pos = -507; % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency Offset
-    L_SSB = 8;      % maximum SSB amount in one half frame 3GPP TS 38.213 4.1
 elseif (signal_choice == 2)
     load('signals/Fn001_chan1.mat');
     sample_rate = 61.44e6;
@@ -28,7 +27,6 @@ elseif (signal_choice == 2)
     threshold = 2e5;
     ssb_pos = -507; % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency Offset
-    L_SSB = 8;      % maximum SSB amount in one half frame 3GPP TS 38.213 4.1
 elseif (signal_choice == 3)
     load('Signals/NR_DL_2159.91MHz_10MHz.mat'); %ncellid = 440
     fc = 2159.91e6;
@@ -39,7 +37,6 @@ elseif (signal_choice == 3)
     threshold = 60; %
     ssb_pos = -48;  % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency offset
-    L_SSB = 8;      % maximum SSB amount in one half frame 3GPP TS 38.213 4.1
 end
 
 N = length(waveform);
@@ -49,6 +46,7 @@ N_sym = nfft + N_CP;
 N_RB = utils.getRBAmount(scs, bw);
 N_SSB = 240;
 N_PSS = 127;
+L_SSB = utils.getLSSB(fc);
 
 %% Plot the signal PSD and Spectrogram
 if show_plots
