@@ -10,53 +10,64 @@ if (signal_choice == 1)
     waveform = waveform(1:25.0e-3*sample_rate).';    % First 2.5 frames
 %     waveform = waveform.';
     fc = 3440e6;
-    bw = 50e6;
+    BW = 50e6;
     N_FFT = 2048;
-    scs = 30e3;
+    SCS_SSB = 30e3;
     threshold = 2e5;
-    ssb_subcarrier_offset = -507; % SSB frequency position
+    SSB_case = "Case C";
+    available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
+        90, 100] * 1e6; % 3GPP 38.101-1 5.3.5-1
+    SSB_subcarrier_offset = -507; % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency Offset
 elseif (signal_choice == 2)
     load('signals/Fn001_chan1.mat');
     sample_rate = 61.44e6;
     waveform = chan1;
     fc = 3440e6;
-    bw = 50e6;
+    BW = 50e6;
     N_FFT = 2048;
-    scs = 30e3;
+    SCS_SSB = 30e3;
     threshold = 2e5;
-    ssb_subcarrier_offset = -507; % SSB frequency position
+    SSB_case = "Case C";
+    available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
+        90, 100] * 1e6; % 3GPP 38.101-1 5.3.5-1
+    SSB_subcarrier_offset = -507; % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency Offset
 elseif (signal_choice == 3)
     load('Signals/NR_DL_2159.91MHz_10MHz.mat'); %ncellid = 440
     fc = 2159.91e6;
-    bw = 10e6;
+    BW = 10e6;
     N_FFT = 1024;
     sample_rate = 15360000;
-    scs = 15e3;
+    SCS_SSB = 15e3;
     threshold = 60; %
-    ssb_subcarrier_offset = -48;  % SSB frequency position
+    SSB_subcarrier_offset = -48;  % SSB frequency position
     int_CFO = 0;    % Integer Center Frequency offset
 elseif (signal_choice == 4)
     load('signals/matlab_5g_downlink_5MHzBW_30kHzSCS.mat');
     sample_rate = 15360000;
     waveform = tmp_waveform.';
     fc = 3e9;
-    bw = 10e6;
+    BW = 10e6;
     N_FFT = 512;
-    scs = 30e3;
+    SCS_SSB = 30e3;
     threshold = 8;
-    ssb_subcarrier_offset = 0;
+    SSB_case = "Case B";
+    available_channel_BWs = [5, 10, 40] * 1e6; % 3GPP 38.101-1 5.3.5-1
+    SSB_subcarrier_offset = 0;
     int_CFO = 0;
 end
 
-N = length(waveform);
-[N_CP_long, N_CP] = utils.getCPLength(scs, sample_rate);
-N_sym_long = N_FFT + N_CP_long;
-N_sym = N_FFT + N_CP;
-N_RB = utils.getRBAmount(scs, bw);
+N_subframes_per_frame = 10;
+N_symbols_per_slot = 14;
+N_subcarriers_per_RB = 12;
 N_SSB = 240;
 N_PSS = 127;
+N = length(waveform);
+[N_CP_long, N_CP] = utils.getCPLength(SCS_SSB, sample_rate);
+N_sym_long = N_FFT + N_CP_long;
+N_sym = N_FFT + N_CP;
+N_RBs = utils.getRBAmount(SCS_SSB, BW);
 L_SSB = utils.getLSSB(fc);
 
 %% Plot the signal PSD and Spectrogram
@@ -72,19 +83,19 @@ if show_plots
     pause;
 end
 
-%% Finding SSB in frequency domain
-if (exist('ssb_subcarrier_offset', 'var') ~= 1)
+%% Find SSB in frequency domain
+if (exist('SSB_subcarrier_offset', 'var') ~= 1)
     fprintf("Find SSB in frequency domian\n");
-    raster = utils.getSSBRaster(fc, bw, scs);
+    raster = utils.getSSBRaster(fc, BW, SCS_SSB);
     search_results = utils.findSSB(waveform, N_FFT, raster);
     [max_val, max_ind] = max(search_results(:, 1));
-    ssb_subcarrier_offset = raster(max_ind);
+    SSB_subcarrier_offset = raster(max_ind);
 
     if show_plots
         figure;
         hold on;
         stem(raster, search_results(:, 1));
-        plot(ssb_subcarrier_offset, max_val, 'kx', 'LineWidth', 2, ...
+        plot(SSB_subcarrier_offset, max_val, 'kx', 'LineWidth', 2, ...
             'MarkerSize', 8);
         title("SSB frequency position search results");
         ylabel("Maximum of xcorr");
@@ -95,17 +106,17 @@ if (exist('ssb_subcarrier_offset', 'var') ~= 1)
     end
 end
 
-%% Integer CFO estimation and correction
+%% Estimation and correct the integer CFO
 if (exist('int_CFO', 'var') ~= 1)
     fprintf("Integer CFO estimation and correction\n");
     offsets = -10:10;
     search_results = findSSB(waveform, N_FFT, ...
-        ssb_subcarrier_offset+offsets);
+        SSB_subcarrier_offset+offsets);
 
     [max_val, max_ind] = max(search_results(:, 1));
     int_CFO = offsets(max_ind);
     fprintf("Integer CFO: %d\n", int_CFO);
-    waveform = waveform .* exp(-1j*2*pi * int_CFO/N_FFT * (0:N-1));
+    waveform = waveform .* exp(-1j*2*pi*int_CFO/N_FFT*(0:N-1));
 
     if show_plots
         figure;
@@ -121,10 +132,10 @@ if (exist('int_CFO', 'var') ~= 1)
     end
 end
 
-%% Fractional CFO estimation and correction
-ssb_frequency_offset = ssb_subcarrier_offset * scs;
+%% Estimation and correct the fractional CFO
+ssb_frequency_offset = SSB_subcarrier_offset * SCS_SSB;
 [factional_CFO, CP_corr] = utils.estimateFractionalCFO(waveform, ...
-    sample_rate, scs, ssb_frequency_offset);
+    sample_rate, SCS_SSB, ssb_frequency_offset);
 fprintf("Fractional CFO = %.2f\n", factional_CFO);
 waveform = waveform .* exp(-1j*2*pi * factional_CFO/sample_rate *(0:N-1));
 
@@ -137,65 +148,61 @@ if show_plots
     pause;
 end
 
-%% Finding SSB position in time domain and detecting PSS
+%% Find SSB position in time domain and detect PSS
 fprintf("Find SSB position in time domain\n");
-[pss_indexes, NID2] = PSS.detectAndDecodePSS(waveform, N_FFT, N_CP, ...
-    threshold, ssb_subcarrier_offset, show_plots);
+[pss_indices, NID2] = PSS.detectAndDecodePSS(waveform, N_FFT, N_CP, ...
+    threshold, SSB_subcarrier_offset, show_plots);
 if show_plots
     fprintf("Press ENTER to continue ...\n");
     pause;
 end
 
-%% Decoding each PBCH, MIB
-NID1 = zeros(1, length(pss_indexes));
-cellid = zeros(1, length(pss_indexes));
-issb = zeros(1, length(pss_indexes));
-snr = zeros(1, length(pss_indexes));
-for i = 1:length(pss_indexes)
+%% Process each SSB
+for i = 1:length(pss_indices)
+    %%%%%%%%%%% Deocode Cell ID %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     fprintf("Decoding Cell ID\n");
-    pss_pos = pss_indexes(i);
-    fprintf("NID2 = %d\n", NID2(i));
+    pss_idx = pss_indices(i);
+    NID2_ = NID2(i);
+    fprintf("NID2 = %d\n", NID2_);
     
     % Second CFO estimation using PSS
-    n1 = pss_pos:pss_pos+N_CP-1;
+    n1 = pss_idx:pss_idx+N_CP-1;
     n2 = n1 + N_FFT;
     pss_CFO = sample_rate/N_FFT * mean(angle(conj(waveform(n1)) .* ...
         waveform(n2)) / (2*pi));
 
     % Current SSB correction
-    block_size = (pss_pos:pss_pos+4*N_sym-1);
+    block_size = (pss_idx:pss_idx+4*N_sym-1);
     waveform(block_size) = waveform(block_size) .* exp(-1j*2*pi * ...
         pss_CFO/sample_rate *(0:length(block_size)-1));
 
-    SSB = zeros(240, 4);
-    for n = 1:4
-        pos = pss_pos + N_sym*(n-1);
-        samples = waveform(pos+N_CP:pos+N_sym-1);
-        spectrum = fftshift(fft(samples)) / sqrt(N_FFT);
-        SSB(:, n) = spectrum(N_FFT/2-N_SSB/2+1+ssb_subcarrier_offset: ...
-            N_FFT/2+N_SSB/2+ssb_subcarrier_offset);
-    end
+    % SSB OFDM demodulation
+    SSB_CPs = ones(1, 4)*N_CP;
+    grid = utils.demodulateOFDM(waveform(pss_idx:end), SSB_CPs, N_FFT);
+    SSB = grid((-N_SSB/2+1:N_SSB/2)+N_FFT/2+SSB_subcarrier_offset, :);
 
     % Decoding SSS, searching for NID1
-    NID1(i) = SSS.decodeSSS(SSB(57:183, 3).', NID2(i), show_plots);
-    fprintf("NID1 = %d\n", NID1(i));
+    NID1 = SSS.decodeSSS(SSB(57:183, 3).', NID2_, show_plots);
+    fprintf("NID1 = %d\n", NID1);
 
     % PCI calculation
-    cellid(i) = 3 * NID1(i) + NID2(i);
-    fprintf("CellID = %d\n", cellid(i));
+    cellid = 3 * NID1 + NID2_;
+    fprintf("CellID = %d\n", cellid);
     
     if show_plots
         fprintf("Press ENTER to continue ...\n");
         pause;
     end
     
+    
+    %%%%%%%%%% Decode PBCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Get PBCH indices
-    [pbch_pos, pbch_dmrs_pos] = PBCH.getPBCHPosition(cellid(i));
+    [pbch_pos, pbch_dmrs_pos] = PBCH.getPBCHPosition(cellid);
     
     % Find correct issb for PBCH DM-RS
     fprintf("Find i_SSB\n");
     pbch_dmrs = SSB(pbch_dmrs_pos).';
-    [issb(i), snr(i)] = PBCH.decodePBCHDMRS(cellid(i), pbch_dmrs, ...
+    [iSSB, snr] = PBCH.decodePBCHDMRS(cellid, pbch_dmrs, ...
         show_plots);
     
     if show_plots
@@ -205,7 +212,7 @@ for i = 1:length(pss_indexes)
 
     % Channel estimation
     fprintf("Channel estimation and correction and PBCH decoding\n");
-    ref_pbch_dmrs = PBCH.generatePBCHDMRS(cellid(i), issb(i));
+    ref_pbch_dmrs = PBCH.generatePBCHDMRS(cellid, iSSB);
     h_est = pbch_dmrs .* conj(ref_pbch_dmrs);
     % Extend channel estimation to PBCH samples
     h_est = h_est + [0;0;0];
@@ -234,28 +241,87 @@ for i = 1:length(pss_indexes)
     modulation_vector = [3, 1, 0, 2];
     n_var = 1e-10;
     
-    v = mod(issb(i), 8); % ??? 8, 4 or L_SSB?
+    v = mod(iSSB, 8); % ??? 8, 4 or L_SSB?
     pbchBits_ = comm.internal.qam.demodulate(pbch_eq, 2^2, 'custom', ...
             [3 1 0 2], 1, 'bit', 1e-10);
-    pbchBits = nrPBCHDecode(pbch_eq, cellid(i), v, 1e-2);
+    pbchBits = nrPBCHDecode(pbch_eq, cellid, v, 1e-2);
     
     % Decode BCH
     fprintf("BCH and MIB decoding\n");
     polarListLength = 8;
     [~, BCH_CRC, tr_block, SFN_4_LSB, n_half_frame, kSSB_MSB] = ...
-        BCH.decodeBCH(pbchBits, L_SSB, cellid(i));
+        BCH.decodeBCH(pbchBits, L_SSB, cellid);
     
     % Display the BCH CRC and ssb index
     fprintf("BCH CRC: %d\n", BCH_CRC);
     fprintf("SSB index: %d\n", v);
     
     % Decode MIB
-    MIB(i) = BCH.decodeMIB(tr_block, SFN_4_LSB, kSSB_MSB);
+    MIB = BCH.decodeMIB(tr_block, SFN_4_LSB, kSSB_MSB);
 
-    % Display the MIB structure
     fprintf("MIB:\n");
-    disp(MIB(i));
+    disp(MIB);
     fprintf("Press ENTER to continue ...\n");
     pause;
+    
+    
+    %%%%%%%%%% Check if CORESET#0 is present %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if all(MIB.k_SSB > 23)
+        % Another SSB with CORESET#0 information can be found according to 3GPP 38.213 13
+        fprintf("No CORESET#0 present\n");
+        continue;
+    end
+    
+    
+    %%%%%%%%%% Demodulate OFDM resource grid %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    fprintf("Demodulate OFDM resource grid\n");
+    
+    % Estimate and correct timing offset to the frame start
+    timing_offset = utils.estimateTimingOffset(sample_rate, N_sym_long, ...
+        N_sym, SSB_case, fc, pss_idx, iSSB);
+    waveform_frame = waveform(1+timing_offset: end);
+    
+    % Estimate and correct frequency offset to the common resource block
+    SCS_common = MIB.SubcarrierSpacingCommon * 1e3;
+    f_shift = MIB.k_SSB * SCS_common;
+    waveform_frame = waveform_frame .* ...
+        exp(1j*2*pi*f_shift/sample_rate*(0:length(waveform_frame)-1));
+    
+    msb_idx = floor(MIB.PDCCHConfigSIB1/16);   % 4 MSB of PDCCHConfigSIB1
+    lsb_idx = mod(MIB.PDCCHConfigSIB1, 16);    % 4 LSB of PDCCHConfigSIB1
+    SCS_pair = [SCS_SSB, SCS_common];
+    min_channel_BW = min(available_channel_BWs);
+    
+    % Get CORESET#0 information
+    [N_RB_CORESET, N_sym_CORESET, CORESET_RB_offset, pattern] = ...
+        PDCCH.getCORESET0Resources(msb_idx, SCS_pair, min_channel_BW, ...
+        MIB.k_SSB);
+    
+    % Demodulate the resource grid
+    N_slots_in_signal = floor(length(waveform_frame)/(N_sym_long+13*N_sym));
+    N_slots_per_frame = N_subframes_per_frame * utils.getSlotsPerSubframe(SCS_common);
+    repeat = min(N_slots_in_signal, N_slots_per_frame);
+    N_CPs = repmat([N_CP_long, N_CP*ones(1, 13)], 1, repeat);           % Minimum number of symbols to cover CORESET#0
+    c0 = CORESET_RB_offset + 10*SCS_SSB/SCS_common;                     % CORESET RB offset from carrier center
+    N_subcarriers = 2*max(c0, N_RB_CORESET-c0) * N_subcarriers_per_RB;  % Minimum number of subcarriers to cover CORESET#0
+    subcarriers = (-N_subcarriers/2+1:N_subcarriers/2)+N_FFT/2;
+    resource_grid = utils.demodulateOFDM(waveform_frame, N_CPs, N_FFT);
+    resource_grid = resource_grid(subcarriers, :);
+    
+    figure;
+    imagesc(abs(resource_grid));
+    title("Frame resource grid");
+    xlabel("symbols");
+    ylabel("subcarriers");
+    fprintf("Press ENTER to continue ...\n");
+    pause;
+    
+    
+    %%%%%%%%%% Find PDCCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    fprintf("Find PDCCH\n");
+    
+    % Find Type0-PDCCH monitoring occasions
+    [n0, nC, is_occasion, frame_offset] = ...
+        PDCCH.getPDCCH0MonitoringOccasions(lsb_idx, iSSB, SCS_pair, ...
+        pattern, N_sym_CORESET, MIB.NFrame);
 end
-

@@ -15,7 +15,8 @@ function search_results = findSSB(waveform, nfft, raster)
         waveform = waveform.';
     end
     N_PSS = 127;
-    pss_ref = [generatePSS(0).', generatePSS(1).', generatePSS(2).'];
+    pss_ref = [PSS.generatePSS(0).', PSS.generatePSS(1).', ...
+        PSS.generatePSS(2).'];
     search_results = zeros(length(raster), 2);
     status = '';
     fprintf("Searching for SSB frequency position:\t");
