@@ -3,7 +3,7 @@ clear variables; close all;
 fprintf(" -- Loading waveform and initial parameters --\n");
 
 show_plots = true;
-signal_choice = 5;
+signal_choice = 4;
 if (signal_choice == 1)
     % Signal deflections from radar measurements
     load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
@@ -103,7 +103,7 @@ if show_plots
 end
 
 %% Find SSB in frequency domain
-if (exist('SSB_subcarrier_offset', 'var') ~= 1)
+if exist('SSB_subcarrier_offset', 'var') ~= 1
     fprintf(" -- Find SSB in frequency domian --\n");
     raster = utils.getSSBRaster(fc, BW, SCS_SSB);
     search_results = utils.findSSB(waveform, N_FFT, raster);

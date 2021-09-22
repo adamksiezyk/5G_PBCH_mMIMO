@@ -1,4 +1,4 @@
-function seq = generatePSS(NID1)
+function seq = generatePSS(NID2)
 %GENERATEPSS Generates a PSS sequence based on the provided NID1 and 3GPP
 %TS 38.211 7.4.2.2.1
     x_table = zeros(1, 127);
@@ -8,5 +8,5 @@ function seq = generatePSS(NID1)
     end
     n = (0:126);
 
-    seq = 1 - 2*x_table(1, (mod((n+43*NID1), 127)+1));
+    seq = 1 - 2*x_table(1, (mod((n+43*NID2), 127)+1));
 end
