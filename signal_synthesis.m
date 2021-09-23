@@ -63,17 +63,24 @@ waveform = waveform .* exp(-1j*2*pi*fractional_CFO/signal_info.fs*(0:N-1));
 fprintf(" -- Find SSB position in time domain --\n");
 [SSB_indices, SSBs, NID2_list, NID1_list] = processing.detectSSBs(...
     waveform, signal_info, PSS_detection_threshold, show_plots);
-% PCI calculation
-SSB_amount = length(SSB_indices);
-cell_ids = zeros(1, SSB_amount);
-for i = 1:SSB_amount
-    cell_ids(i) = 3 * NID1_list(i) + NID2_list(i);
-    fprintf("CellID = %d\n", cell_ids(i));
+
+%% Process each SSB
+for i = 1:length(SSB_indices)
+    SSB_ = SSBs(i, :, :);
+    NID2 = NID2_list(i);
+    NID1 = NID1_list(i);
+    % Decode Cell ID
+    cell_id = 3 * NID1 + NID2;
+    fprintf("CellID = %d\n", cell_id);
+
+    % Decode BCH
+    [~, PBCH_bits, iSSB] = processing.decodePBCH(signal_info, SSB_, ...
+        cell_id, show_plots);
+
+    % Synthesise SSB
+    synthetic_SSB = processing.synthesiseSSB(signal_info, PBCH_bits, NID2, NID1, iSSB, show_plots);
+    
+    % Delete PBCH DMRS
+    PBCH_DMRS_pos = signal_info.PBCH_DMRS_position(cell_id);
+    synthetic_SSB(PBCH_DMRS_pos) = zeros(1, length(PBCH_DMRS_pos));
 end
-
-%% Decode BCH
-[MIBs, PBCH_bits, iSSBs] = processing.decodePBCH(signal_info, SSBs, ...
-    cell_ids, show_plots);
-
-%% Synthesise SSBs
-synthetic_SSBs = processing.synthesiseSSBs(signal_info, PBCH_bits, NID2_list, NID1_list, iSSBs, show_plots);

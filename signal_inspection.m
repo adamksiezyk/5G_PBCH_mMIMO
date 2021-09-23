@@ -217,7 +217,8 @@ for i = 1:length(pss_indices)
     
     %%%%%%%%%% Decode PBCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Get PBCH indices
-    [pbch_pos, pbch_dmrs_pos] = PBCH.getPBCHPosition(cellid);
+    pbch_pos = PBCH.getPBCHPosition(cellid);
+    pbch_dmrs_pos = PBCH.getPBCHDMRSPosition(cellid);
     
     % Find correct issb for PBCH DM-RS
     fprintf(" -- Find i_SSB --\n");

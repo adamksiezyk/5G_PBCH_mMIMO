@@ -2,12 +2,12 @@ classdef Carrier
     %CARRIER Represents a 5G carrier
     
     properties
-        SubcarrierSpacing {mustBeInteger}           % Represents the Subcarrier Spacing
-        N_RB_start {mustBeInteger}                  % Represents the start RB index
-        N_RB {mustBeInteger}                        % Represents the RB number
-        NSlot {mustBeInteger}                       % Represents the current slot
-        NFrame {mustBeInRange(NFrame, 0, 1023)}     % Represents the current System Frame Number
-        NCellID {mustBeInRange(NCellID, 0, 1023)}   % Represents the cell ID
+        SubcarrierSpacing   % Represents the Subcarrier Spacing
+        N_RB_start          % Represents the start RB index
+        N_RB                % Represents the RB number
+        NSlot               % Represents the current slot
+        NFrame              % Represents the current System Frame Number
+        NCellID             % Represents the cell ID
     end
     
     properties (SetAccess = private)

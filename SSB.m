@@ -61,7 +61,7 @@ classdef SSB
         
         function val = PBCH_position(cell_id)
             % Returns the RE indices in a SSB where a PBCH is present
-            [val, ~] = PBCH.getPBCHPosition(cell_id);
+            val = PBCH.getPBCHPosition(cell_id);
         end
         
         function val = PBCH_DMRS_position(cell_id)

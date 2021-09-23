@@ -1,4 +1,4 @@
-function [pbch_pos, pbch_dmrs_pos] = getPBCHPosition(ncellid)
+function pbch_pos = getPBCHPosition(ncellid)
 %GETPBCHPOSITION Returns the PBCH and PBCH DM-RS positions in SSB based on
 %the provided Cell ID
 % Inputs:
@@ -17,7 +17,6 @@ function [pbch_pos, pbch_dmrs_pos] = getPBCHPosition(ncellid)
 
     pbch = [1 2 3; 0 2 3; 0 1 3; 0 1 2].';
     % And add missing elements
-    pbch_dmrs_pos = base_pos.' + v + 1;
     pbch_pos = base_pos + pbch(:, v+1);
     pbch_pos = pbch_pos(:) + 1;
 end
