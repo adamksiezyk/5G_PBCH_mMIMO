@@ -65,33 +65,36 @@ fprintf(" -- Find SSB position in time domain --\n");
     waveform, signal_info, PSS_detection_threshold, show_plots);
 
 %% Process each SSB
-synthetic_waveform = zeros(1, N);
-for i = 1:length(SSB_indices)
-    SSB_idx = SSB_indices(i);
-    SSB_grid = SSBs(i, :, :);
-    NID2 = NID2_list(i);
-    NID1 = NID1_list(i);
-    % Decode Cell ID
-    cell_id = 3 * NID1 + NID2;
-    fprintf("CellID = %d\n", cell_id);
+SSB_idx = SSB_indices(1);
+SSB_grid = SSBs(1, :, :);
+NID2 = NID2_list(1);
+NID1 = NID1_list(1);
 
-    % Decode BCH
-    [~, PBCH_bits, iSSB] = processing.decodePBCH(signal_info, SSB_grid, ...
-        cell_id, show_plots);
+% Decode Cell ID
+cell_id = 3 * NID1 + NID2;
+fprintf("CellID = %d\n", cell_id);
 
-    % Synthesise SSB
-    synthetic_SSB = processing.synthesiseSSB(signal_info, PBCH_bits, NID2, NID1, iSSB, show_plots);
-    
-    % Delete PBCH DMRS
-%     PBCH_DMRS_pos = signal_info.SSB.PBCH_DMRS_position(cell_id);
-%     synthetic_SSB(PBCH_DMRS_pos) = zeros(1, length(PBCH_DMRS_pos));
-    
-    % Synthesize waveform
-    N_samples_SSB = signal_info.SSB.N_symbols_SSB * signal_info.N_sym;
-    N_CPs = ones(1, signal_info.SSB.N_symbols_SSB) * signal_info.N_CP;
-    synthetic_waveform(SSB_idx+(0:N_samples_SSB-1)) = utils.modulateOFDM(...
-        synthetic_SSB, signal_info, N_CPs);
-end
+% Decode BCH
+[~, PBCH_bits, iSSB] = processing.decodePBCH(signal_info, SSB_grid, ...
+    cell_id, show_plots);
+
+% Synthesise SSB
+synthetic_SSB = processing.synthesiseSSB(signal_info, PBCH_bits, ...
+    NID2, NID1, iSSB, show_plots);
+
+% Delete PBCH DM-RS
+SSB_start = signal_info.N_FFT/2 - signal_info.SSB.N_subcarriers_SSB/2 + ...
+            signal_info.SSB.subcarrier_offset;
+PBCH_DMRS_pos = signal_info.SSB.PBCH_DMRS_position(cell_id);
+PBCH_DMRS_pos = PBCH_DMRS_pos + ...
+    floor(PBCH_DMRS_pos / signal_info.SSB.N_subcarriers_SSB) * ...
+    (signal_info.N_FFT-signal_info.SSB.N_subcarriers_SSB);
+PBCH_DMRS_pos = PBCH_DMRS_pos + SSB_start - 1;
+synthetic_SSB(PBCH_DMRS_pos) = zeros(1, length(PBCH_DMRS_pos));
+
+% Synthesize waveform
+N_CPs = ones(1, signal_info.SSB.N_symbols_SSB) * signal_info.N_CP;
+synthetic_waveform = utils.modulateOFDM(synthetic_SSB, signal_info, N_CPs);
 
 if show_plots
     fprintf(" -- Synthesised signal Spectrigram --\n");
