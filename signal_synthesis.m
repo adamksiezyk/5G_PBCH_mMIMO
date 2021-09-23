@@ -2,7 +2,7 @@ clear variables; close all;
 %% Load waveform and initial parameters
 fprintf(" -- Loading waveform and initial parameters --\n");
 
-show_plots = true;
+show_plots = false;
 
 % Signal parameters
 load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
@@ -65,8 +65,10 @@ fprintf(" -- Find SSB position in time domain --\n");
     waveform, signal_info, PSS_detection_threshold, show_plots);
 
 %% Process each SSB
+synthetic_waveform = zeros(1, N);
 for i = 1:length(SSB_indices)
-    SSB_ = SSBs(i, :, :);
+    SSB_idx = SSB_indices(i);
+    SSB_grid = SSBs(i, :, :);
     NID2 = NID2_list(i);
     NID1 = NID1_list(i);
     % Decode Cell ID
@@ -74,13 +76,28 @@ for i = 1:length(SSB_indices)
     fprintf("CellID = %d\n", cell_id);
 
     % Decode BCH
-    [~, PBCH_bits, iSSB] = processing.decodePBCH(signal_info, SSB_, ...
+    [~, PBCH_bits, iSSB] = processing.decodePBCH(signal_info, SSB_grid, ...
         cell_id, show_plots);
 
     % Synthesise SSB
     synthetic_SSB = processing.synthesiseSSB(signal_info, PBCH_bits, NID2, NID1, iSSB, show_plots);
     
     % Delete PBCH DMRS
-    PBCH_DMRS_pos = signal_info.PBCH_DMRS_position(cell_id);
-    synthetic_SSB(PBCH_DMRS_pos) = zeros(1, length(PBCH_DMRS_pos));
+%     PBCH_DMRS_pos = signal_info.SSB.PBCH_DMRS_position(cell_id);
+%     synthetic_SSB(PBCH_DMRS_pos) = zeros(1, length(PBCH_DMRS_pos));
+    
+    % Synthesize waveform
+    N_samples_SSB = signal_info.SSB.N_symbols_SSB * signal_info.N_sym;
+    N_CPs = ones(1, signal_info.SSB.N_symbols_SSB) * signal_info.N_CP;
+    synthetic_waveform(SSB_idx+(0:N_samples_SSB-1)) = utils.modulateOFDM(...
+        synthetic_SSB, signal_info, N_CPs);
+end
+
+if show_plots
+    fprintf(" -- Synthesised signal Spectrigram --\n");
+    figure;
+    f = signal_info.fs/2048 * (-1024:1023);
+    spectrogram(synthetic_waveform, 2048, 1024, f, signal_info.fs);
+    fprintf("Press ENTER to continue ...\n");
+    pause;
 end

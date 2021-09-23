@@ -1,4 +1,4 @@
-function synthetic_SSB = synthesiseSSB(signal_info, PBCH_bits, ...
+function synthetic_grid = synthesiseSSB(signal_info, PBCH_bits, ...
     NID2, NID1, iSSB, show_plots_)
 %SYNTHESIS Detects the SSBs in the waveform and returns the syntesised SSB
 %spectrum. 3GPP 38.211 7.4.3, (resource allocation and scaling factor)
@@ -46,6 +46,7 @@ function synthetic_SSB = synthesiseSSB(signal_info, PBCH_bits, ...
     end
 
     % Place the SSB in the spectrum
-    synthetic_SSB(signal_info.get_SSB_subcarriers, :) = synthetic_SSB;
+    synthetic_grid = zeros(signal_info.N_FFT, signal_info.SSB.N_symbols_SSB);
+    synthetic_grid(signal_info.get_SSB_subcarriers, :) = synthetic_SSB;
 end
 
