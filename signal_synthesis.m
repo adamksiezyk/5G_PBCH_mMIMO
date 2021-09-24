@@ -92,6 +92,9 @@ PBCH_DMRS_pos = PBCH_DMRS_pos + ...
 PBCH_DMRS_pos = PBCH_DMRS_pos + SSB_start - 1;
 synthetic_SSB(PBCH_DMRS_pos) = zeros(1, length(PBCH_DMRS_pos));
 
+% Extract PSS
+synthetic_SSB = synthetic_SSB(:, 1);
+
 % Synthesize waveform
 N_CPs = ones(1, signal_info.SSB.N_symbols_SSB) * signal_info.N_CP;
 synthetic_waveform = utils.modulateOFDM(synthetic_SSB, signal_info, N_CPs);

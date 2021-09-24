@@ -62,7 +62,7 @@ classdef SignalInfo
         
         function val = get_SSB_subcarriers(obj)
             SSB_start =  obj.N_FFT/2 - obj.SSB.N_subcarriers_SSB/2 + ...
-                obj.SSB.subcarrier_offset;
+                obj.SSB.subcarrier_offset + 1;
             val = (0:obj.SSB.N_subcarriers_SSB-1) + SSB_start;
         end
     end

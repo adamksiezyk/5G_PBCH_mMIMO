@@ -6,7 +6,7 @@ function waveform = modulateOFDM(fft_grid, signal_info, N_CPs)
     N_FFT = signal_info.N_FFT;  % FFT size
     
     % Construct time sequences
-    time_seqs = ifft(ifftshift(fft_grid, 1), N_FFT, 1);
+    time_seqs = ifft(ifftshift(fft_grid, 1), N_FFT, 1) * sqrt(N_FFT);
     
     % Add CP and serialize
     waveform = zeros(1, N_syms*N_FFT+sum(N_CPs));
