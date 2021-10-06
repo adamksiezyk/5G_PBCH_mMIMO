@@ -1,4 +1,4 @@
-function search_results = findSSB(waveform, nfft, raster)
+function search_results = findSSBSubcarrierOffset(waveform, nfft, raster)
 %FINDSSB Searches through all potential SSB frequency positions
 % Inputs:
 %   waveform    : a vector representing the signal

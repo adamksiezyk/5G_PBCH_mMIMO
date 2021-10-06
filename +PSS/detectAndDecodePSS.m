@@ -18,7 +18,7 @@ function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
 %   NID2            : a vector (or a single number if threshold == 0)
 %   representing the detected PSS NID2
 
-    if nargin<5
+    if nargin<6
         show_plots = true;
     else
         show_plots = show_plots_;
@@ -64,9 +64,16 @@ function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
 
     if threshold == 0
         [max_val, time_offsets] = max(corrPSS);
-        [~, max_NID2] = max(max_val);
-        pss_indices = time_offsets(max_NID2) - N_sym + 1;
+        [max_corr, max_NID2] = max(max_val);
+        pos = time_offsets(max_NID2);
+        pss_indices = pos - N_sym + 1;
         NID2 = max_NID2 - 1;
+        
+        if show_plots
+            subplot(3, 1, max_NID2);
+            plot(pos, max_corr, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
+            legend("correlation result", "N_{ID}^{(2)}");
+        end
     else
         %find index of every detected pss sequence 
         idx = 1;

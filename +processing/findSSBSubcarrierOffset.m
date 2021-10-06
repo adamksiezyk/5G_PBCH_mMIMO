@@ -18,7 +18,8 @@ function SSB_subcarrier_offset = findSSBSubcarrierOffset(waveform, ...
     
     raster = utils.getSSBRaster(signal_info.fc, signal_info.BW, ...
         signal_info.SCS);
-    search_results = utils.findSSB(waveform, signal_info.N_FFT, raster);
+    search_results = utils.findSSBSubcarrierOffset(waveform, ...
+        signal_info.N_FFT, raster);
     [max_val, max_ind] = max(search_results(:, 1));
     SSB_subcarrier_offset = raster(max_ind);
 

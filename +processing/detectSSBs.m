@@ -14,7 +14,7 @@ function [SSB_indices, SSBs, NID2_list, NID1_list] = detectSSBs(waveform, ...
 %   NID2_list       : a vector representing the detected NID2 list
 %   NID1_list       : a vector representing the detected NID1 list
 
-    if nargin < 3
+    if nargin < 4
         show_plots = false;
     else
         show_plots = show_plots_;
@@ -33,7 +33,7 @@ function [SSB_indices, SSBs, NID2_list, NID1_list] = detectSSBs(waveform, ...
     SSBs = zeros(SSB_amount, SSB.N_subcarriers_SSB, SSB.N_symbols_SSB);
     NID1_list = zeros(1, SSB_amount);
     for i = 1:SSB_amount
-        SSB_idx = SSB_indices(i);
+        SSB_idx = max(SSB_indices(i), 1);
         NID2 = NID2_list(i);
 
         % Second CFO estimation using PSS

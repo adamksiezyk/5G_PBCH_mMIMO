@@ -67,7 +67,8 @@ function [MIB, PBCH_bits, iSSB] = decodePBCH(signal_info, SSB_grid, ...
         BCH.decodeBCH(PBCH_bits, signal_info.SSB.L_SSB, cell_id);
     fprintf("CRC = %d\n", BCH_CRC);
     if BCH_CRC ~= 0
-        fprintf("Error detected\n");
+        fprintf("Error detected, CRC != 0\n");
+        MIB = cell(0);
     else
         % Decode MIB
         MIB = BCH.decodeMIB(tr_block, SFN_4_LSB, kSSB_MSB);

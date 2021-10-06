@@ -23,17 +23,17 @@ PSS_detection_threshold = 2e5;      % Threshold for SSB detection
 int_CFO = 0;                        % Integer Center Frequency Offset
 
 %% Plot the signal PSD and Spectrogram
-    if show_plots
-        fprintf(" -- Signal PSD and Spectrigram --\n");
-        figure;
-        pwelch(waveform, 2048, 2048-1024, 2048, signal_info.fs, 'centered');
+if show_plots
+    fprintf(" -- Signal PSD and Spectrigram --\n");
+    figure;
+    pwelch(waveform, 2048, 2048-1024, 2048, signal_info.fs, 'centered');
 
-        figure;
-        f = signal_info.fs/2048 * (-1024:1023);
-        spectrogram(waveform, 2048, 1024, f, signal_info.fs);
-        fprintf("Press ENTER to continue ...\n");
-        pause;
-    end
+    figure;
+    f = signal_info.fs/2048 * (-1024:1023);
+    spectrogram(waveform, 2048, 1024, f, signal_info.fs);
+    fprintf("Press ENTER to continue ...\n");
+    pause;
+end
 
 %% Find SSB in frequency domain
 if isempty(signal_info.SSB.subcarrier_offset)
