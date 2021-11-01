@@ -23,6 +23,12 @@ function pdcch = getPDCCHParameters(SCS_SSB, min_channel_BW, MIB, iSSB, ...
     [N_RB_CORESET, N_sym_CORESET, CORESET_RB_offset, pattern] = ...
         PDCCH.getCORESET0Resources(msb_idx, SCS_pair, min_channel_BW, ...
         MIB.kSSB);
+    coreset = PDCCH.CORESET;
+    coreset.id = 0;
+    coreset.N_sym = N_sym_CORESET;
+    coreset.N_RB_start = 0;
+    coreset.N_RB = N_RB_CORESET;
+    coreset.N_shift = cellid;
     
     % Find Type0-PDCCH monitoring occasions. 3GPP 28.213 13
     [n0, nC, is_occasion, frame_offset] = ...
@@ -43,10 +49,14 @@ function pdcch = getPDCCHParameters(SCS_SSB, min_channel_BW, MIB, iSSB, ...
     end
     search_space.NumCandidates = [0 0 8 4 1]; % TS 38.213 Table 10.1-1
     
+    % Limit aggregation levels to CORESET resources
+    max_aggregation_level = floor(log2(coreset.N_RB * coreset.N_sym / ...
+        coreset.N_REGs_per_CCE))+1;
+    search_space.NumCandidates(max_aggregation_level+1:end) = 0;
+    
     % PDCCH parameters
     pdcch = PDCCH.PDCCHParameters;
-    pdcch.N_RB_start = 0;
-    pdcch.N_RB = N_RB_CORESET;
+    pdcch.CORESET = coreset;
     pdcch.SearchSpace = search_space;
     pdcch.RNTI = 0;                     % TS 38.211 Section 7.3.2.3
     pdcch.DMRS_scrambling_ID = cellid;  % TS 38.211 Section 7.3.2.3

@@ -2,8 +2,8 @@ clear variables; close all;
 %% Load waveform and initial parameters
 fprintf(" -- Loading waveform and initial parameters --\n");
 
-show_plots = true;
-signal_choice = 4;
+show_plots = false;
+signal_choice = 5;
 if (signal_choice == 1)
     % Signal deflections from radar measurements
     load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
@@ -71,7 +71,7 @@ elseif (signal_choice == 4)
     signal_info.SCS = 30e3;
     
     signal_info.SSB.SSB_case = "Case C";
-%     signal_info.SSB.subcarrier_offset = -507;
+    signal_info.SSB.subcarrier_offset = -507;
     
     PSS_detection_threshold = 0;    % Threshold for SSB detection
     int_CFO = 0;                    % Integer Center Frequency Offset
@@ -97,6 +97,25 @@ elseif (signal_choice == 5)
     int_CFO = 0;                    % Integer Center Frequency Offset
     
     available_channel_BWs = [5, 10, 40] * 1e6; % 3GPP 38.101-1 5.3.5-1
+elseif (signal_choice == 6)
+    % Radar measurements, signals diflected by drone
+    load('signals/Keysight/iq_Fs61,44_Fc3440_BW50_SCS30_Beam2_fully_allocated.mat');
+    waveform = double(Y.');
+    signal_info = SignalInfo;
+    signal_info.fs = 61.44e6;
+    signal_info.fc = 3440e6;
+    signal_info.BW = 50e6;
+    signal_info.N_FFT = 2048;
+    signal_info.SCS = 30e3;
+    
+    signal_info.SSB.SSB_case = "Case C";
+    signal_info.SSB.subcarrier_offset = -507;
+    
+    PSS_detection_threshold = 0;    % Threshold for SSB detection
+    int_CFO = 0;                    % Integer Center Frequency Offset
+    
+    available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
+        90, 100] * 1e6;             % 3GPP 38.101-1 5.3.5-1
 end
 
 N = length(waveform);
@@ -146,6 +165,7 @@ fprintf(" -- Find SSB position in time domain --\n");
 
 %% Process each SSB
 for i = 1:length(SSB_indices)
+    %%%%%%%%%% Decode PBCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     SSB_idx = SSB_indices(i);
     SSB_grid = SSBs(i, :, :);
     NID2 = NID2_list(i);
@@ -192,12 +212,10 @@ for i = 1:length(SSB_indices)
     SCS_pair = [signal_info.SCS, SCS_common];
     min_channel_BW = min(available_channel_BWs);
     
-    % Get CORESET#0 information
+    % Demodulate the resource grid
     [N_RB_CORESET, N_sym_CORESET, CORESET_RB_offset, pattern] = ...
         PDCCH.getCORESET0Resources(msb_idx, SCS_pair, min_channel_BW, ...
         MIB.kSSB);
-    
-    % Demodulate the resource grid
     N_slots_in_signal = floor(length(waveform_frame) / ...
         (signal_info.N_sym_long+13*signal_info.N_sym));
     N_slots_per_frame = signal_info.N_subframes_per_frame * ...
@@ -213,18 +231,31 @@ for i = 1:length(SSB_indices)
         signal_info.N_FFT);
     resource_grid = resource_grid(subcarriers, :);
     
-    figure;
-    imagesc(abs(resource_grid));
-    axis xy;
-    title("Frame resource grid");
-    xlabel("symbols");
-    ylabel("subcarriers");
-    fprintf("Press ENTER to continue ...\n");
-    pause;
+    if show_plots
+        figure;
+        imagesc(abs(resource_grid));
+        axis xy;
+        title("Frame resource grid");
+        xlabel("symbols");
+        ylabel("subcarriers");
+        fprintf("Press ENTER to continue ...\n");
+        pause;
+    end
     
-    
-    %%%%%%%%%% Find PDCCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %%%%%%%%%% Decode PDCCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     fprintf(" -- Find PDCCH --\n");
+    pdcch = PDCCH.getPDCCHParameters(signal_info.SCS, min_channel_BW, ...
+        MIB, iSSB, cell_id);
+    
+    % Create a carrier that spans the wole CORESET#0 BWP
+    c0Carrier = Carrier;
+    c0Carrier.SubcarrierSpacing = MIB.SubcarrierSpacingCommon;
+    c0Carrier.N_RB_start = pdcch.CORESET.N_RB_start;
+    c0Carrier.N_RB = pdcch.CORESET.N_RB;
+    c0Carrier.NSlot = pdcch.SearchSpace.SlotOffset;
+    c0Carrier.NFrame = MIB.NFrame;
+    c0Carrier.NCellID = cell_id;
     
     % Find Type0-PDCCH monitoring occasions. 3GPP 28.213 13
     [n0, nC, is_occasion, frame_offset] = ...
@@ -241,18 +272,10 @@ for i = 1:length(SSB_indices)
     monitoring_grid = resource_grid(monitoring_subcarriers, ...
         monitoring_symbols);
     
-    % Get PDCCH parameters
-    pdcch = PDCCH.getPDCCHParameters(signal_info.SCS, min_channel_BW, ...
-        MIB, iSSB, cell_id);
+    % Get PDCCH resources
+    [pdcch_indices, pdcch_dmrs_indices]  = PDCCH.getPDCCHResources(...
+        c0Carrier, pdcch);
     
-    % Create a carrier that spans the wole CORESET#0 BWP
-    c0Carrier = Carrier;
-    c0Carrier.SubcarrierSpacing = MIB.SubcarrierSpacingCommon;
-    c0Carrier.N_RB_start = pdcch.N_RB_start;
-    c0Carrier.N_RB = pdcch.N_RB;
-    c0Carrier.NSlot = pdcch.SearchSpace.SlotOffset;
-    c0Carrier.NFrame = MIB.NFrame;
-    c0Carrier.NCellID = cell_id;
-    
+    pdcch_dmrs = PDCCH.getPDCCHDMRS(c0Carrier, pdcch, 3);
     
 end
