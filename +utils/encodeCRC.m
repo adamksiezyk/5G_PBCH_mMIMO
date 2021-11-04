@@ -1,10 +1,15 @@
-function blkcrc = encodeCRC(blk, poly)
+function blkcrc = encodeCRC(blk, poly, mask)
 %ENCODECRC Add CRC to block
 % Inputs:
 %   blk     : a vector representing the code block
 %   poly    : a string representing the CRC polynomial
+%   mask    : a number representing the scrambling mask (optional)
 % Outputs:
 %   blkcrc  : a vector representing the CRC encoded block
+
+    if nargin < 3
+        mask = 0;
+    end
 
     % Perform cyclic redundancy check
     [codeLen, numCodeBlocks] = size(blk);
@@ -16,6 +21,13 @@ function blkcrc = encodeCRC(blk, poly)
         blkcrcL = false(codeLen+gLen,numCodeBlocks);
         for i = 1:numCodeBlocks
             blkcrcL(:,i) = crcEncode(double(blkL(:,i)),gPoly,gLen);
+        end
+        if mask
+            % Convert decimal mask to bits
+            maskBits = comm.internal.utilities.de2biBase2LeftMSB( ...
+                double(mask),gLen)';
+            blkcrcL(end-gLen+1:end,:) = xor(blkcrcL(end-gLen+1:end,:), ...
+                repmat(maskBits>0,[1 numCodeBlocks]));
         end
         blkcrc = [blk; cast(blkcrcL(end-gLen+1:end,:),class(blk))];
     end

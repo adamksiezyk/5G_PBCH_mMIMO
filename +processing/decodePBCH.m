@@ -1,6 +1,6 @@
 function [MIB, PBCH_bits, iSSB] = decodePBCH(signal_info, SSB_grid, ...
     cell_id, show_plots_)
-%DECODEPBCH Summary of this function goes here
+%DECODEPBCH Decodes the Physical Broadcast Channel.
 % Inputs:
 %   signal_info     : a SignalInfo object
 %   SSBs            : a 3D matrix representing the SSB grids

@@ -23,23 +23,22 @@ function [scr_block, err_flag, BCCH_BCH_msg, SFN_4_LSB, HRF, kSSB_MSB] ...
     if E ~= 864
         return
     end
-    K = 56;                 % N_payload + N_CRC: 7.1.3
-    N = 512;
-    rec_block = BCH.recoverRatePolar(code_block, K, N);
-    
-    % Polar decoding 7.1.4
+    K = 56;     % N_payload + N_CRC: 7.1.3
     n_max = 9;
     iIL = true;
-    n_PC = 0;               % Pairity check bit number: 7.1.4
+    n_PC = 0;   % Pairity check bit number: 7.1.4
     n_PC_wm = 0;
+    N = channel.getNPolarEncoded(K, E, n_max);
+    rec_block = channel.recoverRatePolar(code_block, K, N);
     
+    % Polar decoding 7.1.4
     L = 8;                  % list size to use during Successive
                             % Cancellation List (SCL) decoding
     N_CRC = 24;             % CRC length: 7.1.3
     poly_CRC = '24C';       % CRC polynomial 7.1.3
     pad_CRC = false;         % ??? default, for BCH and UCI
     rnti = 0;               % ??? default, unused
-    dec_block = BCH.decodePolar(rec_block, K, E, n_max, n_PC, L, iIL, N_CRC);
+    dec_block = channel.decodePolar(rec_block, K, E, n_max, n_PC, L, iIL, N_CRC);
     
     % CRC decoding 7.1.3
     [scr_block, err_flag] = utils.decodeCRC(dec_block, poly_CRC);
