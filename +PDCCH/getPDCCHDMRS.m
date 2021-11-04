@@ -6,6 +6,8 @@ function DMRS = getPDCCHDMRS(carrier, pdcch, aggregation_level_index)
 %   pdcch                       : a PDCCH.PDCCHParameters class
 %   aggregation_level_index     : a number representing the aggregation
 %   level index
+% Outputs:
+%   DMRS    : a vector representing the PDCCH DM-RS modulation symbols
 
     aggregation_levels = [1 2 4 8 16];  % 3GPP 38.211 Table 7.3.2.1-1: Supported PDCCH aggregation levels
     DMRS_indices_per_RB = [1 5 9] + 1;  % DM-RS, 3GPP 38.211 7.4.1.3.2

@@ -93,7 +93,7 @@ elseif (signal_choice == 5)
     signal_info.SSB.SSB_case = "Case B";
     signal_info.SSB.subcarrier_offset = 0;
     
-    PSS_detection_threshold = 8;    % Threshold for SSB detection
+    PSS_detection_threshold = 0;    % Threshold for SSB detection
     int_CFO = 0;                    % Integer Center Frequency Offset
     
     available_channel_BWs = [5, 10, 40] * 1e6; % 3GPP 38.101-1 5.3.5-1
@@ -227,9 +227,11 @@ for i = 1:length(SSB_indices)
     N_RB_CORESET_min = 2*max(c0, N_RB_CORESET-c0);          % Minimum number of RBs to cover CORESET#0
     N_subcarriers = N_RB_CORESET_min * signal_info.N_subcarriers_per_RB;    
     subcarriers = (-N_subcarriers/2+1:N_subcarriers/2)+signal_info.N_FFT/2;
-    resource_grid = utils.demodulateOFDM(waveform_frame, N_CPs, ...
-        signal_info.N_FFT);
-    resource_grid = resource_grid(subcarriers, :);
+%     resource_grid = utils.demodulateOFDM(waveform_frame, N_CPs, ...
+%         signal_info.N_FFT);
+%     resource_grid = resource_grid(subcarriers, :);
+    resource_grid = nrOFDMDemodulate(waveform_frame.', N_RB_CORESET_min, ...
+        30, 0, 'SampleRate', signal_info.fs, 'CarrierFrequency', 0);
     
     if show_plots
         figure;
@@ -262,20 +264,48 @@ for i = 1:length(SSB_indices)
         PDCCH.getPDCCH0MonitoringOccasions(lsb_idx, iSSB, SCS_pair, ...
         pattern, N_sym_CORESET, MIB.NFrame);
     
-    monitoring_symbols = [n0, n0+1]*signal_info.N_symbols_per_slot + nC + ...
-        [1:signal_info.N_symbols_per_slot].' + ...
-        frame_offset*N_slots_per_frame*signal_info.N_symbols_per_slot;
-    monitoring_symbols = monitoring_symbols(:).';
-    monitoring_subcarriers = (N_RB_CORESET_min - 20*signal_info.SCS / ...
+    N_symbols = size(resource_grid, 2);
+    N_slots = ceil(N_symbols / c0Carrier.SymbolsPerSlot);
+    N_mon_slots = 2;
+    mon_slots = n0 + (0:N_mon_slots-1)' + (0:2*c0Carrier.SlotsPerFrame:(N_slots-n0-1));
+    mon_slots = mon_slots(:)';
+    mon_symbols = mon_slots*c0Carrier.SymbolsPerSlot + (1:c0Carrier.SymbolsPerSlot)';
+    mon_symbols = mon_symbols(:)';
+    mon_symbols(mon_symbols > N_symbols) = [];
+    
+    mon_subcarriers = (N_RB_CORESET_min - 20*signal_info.SCS / ...
         SCS_common)*signal_info.N_subcarriers_per_RB/2 + CORESET_RB_offset * ...
         signal_info.N_subcarriers_per_RB + [1:N_RB_CORESET*12];
-    monitoring_grid = resource_grid(monitoring_subcarriers, ...
-        monitoring_symbols);
+    mon_grid = resource_grid(mon_subcarriers, ...
+        mon_symbols);
     
     % Get PDCCH resources
     [pdcch_indices, pdcch_dmrs_indices]  = PDCCH.getPDCCHResources(...
         c0Carrier, pdcch);
     
-    pdcch_dmrs = PDCCH.getPDCCHDMRS(c0Carrier, pdcch, 3);
-    
+    for monitoring_slot = 0%:length(mon_slots)-1
+        % Get PDCCH candidates according to TS 38.213 Section 10.1
+        slot_grid = mon_grid(:, (1:c0Carrier.SymbolsPerSlot) + ...
+            c0Carrier.SymbolsPerSlot*monitoring_slot, :);
+        slot_grid = slot_grid/max(abs(slot_grid(:)));
+
+        tmp_al = 4;
+        tmp_c = 1;
+        
+        % Estimate channel using PDCCH DM-RS        
+        pdcch_dmrs = slot_grid(pdcch_dmrs_indices{tmp_al}(:, tmp_c));
+        pdcch_dmrs_ref = PDCCH.getPDCCHDMRS(c0Carrier, pdcch, tmp_al);
+        pdcch_dmrs_ref = pdcch_dmrs_ref(:, tmp_c);
+        h_est = pdcch_dmrs .* conj(pdcch_dmrs_ref);
+        h_est = h_est + [0, 0, 0];
+        h_est = h_est(:);
+        
+        % Equalize PDCCH
+        pdcch_symbols = slot_grid(pdcch_indices{tmp_al}(:, tmp_c));
+        pdcch_symbols_eq = pdcch_symbols ./ h_est;
+        
+        % Decode PDCCH
+        [dci_bits, dci_crc] = PDCCH.decodePDCCH(pdcch_symbols_eq, ...
+            pdcch.DMRS_scrambling_ID, pdcch.RNTI, 1e-2);
+    end
 end
