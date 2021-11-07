@@ -7,7 +7,8 @@ classdef SearchSpace
         SlotPeriod {mustBeInteger}                                          % Represents the slot period
         SlotOffset {mustBeInteger}                                          % Represents the slot offset
         Duration {mustBeInRange(Duration, 2, 3)}                            % Represents the amount of symbols
-        NumCandidates {mustBeNumeric} = [0 0 8 4 1]                         % Represents the candidates TS 38.213 Table 10.1-1
+        AggregationLevels = [1 2 4 8 16]                                    % Represents the aggregation levels 3GPP 38.211 Table 7.3.2.1-1
+        NumCandidates = [0 0 8 4 1]                                         % Represents the candidates 3GPP 38.213 Table 10.1-1
     end
 end
 

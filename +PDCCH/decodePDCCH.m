@@ -1,10 +1,11 @@
-function [dci_bits, err_flag] = decodePDCCH(symbols, N_ID, N_RNTI, n_var)
+function [dci_bits, err_flag] = decodePDCCH(symbols, N_DCI, N_ID, N_RNTI, n_var)
 %DECODEPDCCH Decodes the Physical Downlink Channel according to etsi 38.211
 % and 38.212
 % Inputs:
-%   symbols     : a vector representing the modulatied PDCCH symbols
-%   N_ID        : a number representing the pdcch-DMTS-ScramblingID
-%   N_RNTI      : a number representing the PDCCH C-RNTI (default 0)
+%   symbols : a vector representing the modulatied PDCCH symbols
+%   N_DCI   : a number representing the DCI length
+%   N_ID    : a number representing the pdcch-DMTS-ScramblingID
+%   N_RNTI  : a number representing the PDCCH C-RNTI (default 0)
 % Outputs:
 %   dci_bits    : a vector representing the soft demodulated and
 %   descrambled Downlink Control Information codeword
@@ -24,10 +25,9 @@ function [dci_bits, err_flag] = decodePDCCH(symbols, N_ID, N_RNTI, n_var)
     
     % Decode DCI codeword
     E = length(dci_cw);
-    A = 37;         % Payload size: 7.3.1.2.1 sum of all fields
     N_crc = 24;     % CRC size: 7.3.2
     poly_crc = '24C';
-    K = A + N_crc;  % DCI size: 7.3.2
+    K = N_DCI + N_crc;  % DCI size: 7.3.2
     n_max = 9;      % 7.3.3
     n_PC = 0;       % 7.3.3
     n_PC_wm = 0;    % 7.3.3

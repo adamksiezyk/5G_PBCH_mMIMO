@@ -283,29 +283,53 @@ for i = 1:length(SSB_indices)
     [pdcch_indices, pdcch_dmrs_indices]  = PDCCH.getPDCCHResources(...
         c0Carrier, pdcch);
     
-    for monitoring_slot = 0%:length(mon_slots)-1
+    dci_crc = 1;
+    for monitoring_slot = 0:length(mon_slots)-1
         % Get PDCCH candidates according to TS 38.213 Section 10.1
         slot_grid = mon_grid(:, (1:c0Carrier.SymbolsPerSlot) + ...
             c0Carrier.SymbolsPerSlot*monitoring_slot, :);
         slot_grid = slot_grid/max(abs(slot_grid(:)));
 
-        tmp_al = 4;
-        tmp_c = 1;
-        
-        % Estimate channel using PDCCH DM-RS        
-        pdcch_dmrs = slot_grid(pdcch_dmrs_indices{tmp_al}(:, tmp_c));
-        pdcch_dmrs_ref = PDCCH.getPDCCHDMRS(c0Carrier, pdcch, tmp_al);
-        pdcch_dmrs_ref = pdcch_dmrs_ref(:, tmp_c);
-        h_est = pdcch_dmrs .* conj(pdcch_dmrs_ref);
-        h_est = h_est + [0, 0, 0];
-        h_est = h_est(:);
-        
-        % Equalize PDCCH
-        pdcch_symbols = slot_grid(pdcch_indices{tmp_al}(:, tmp_c));
-        pdcch_symbols_eq = pdcch_symbols ./ h_est;
-        
-        % Decode PDCCH
-        [dci_bits, dci_crc] = PDCCH.decodePDCCH(pdcch_symbols_eq, ...
-            pdcch.DMRS_scrambling_ID, pdcch.RNTI, 1e-2);
+        for al = 1:5
+            for c = 1:pdcch.SearchSpace.NumCandidates(al)
+                % Estimate channel using PDCCH DM-RS        
+                pdcch_dmrs = slot_grid(pdcch_dmrs_indices{al}(:, c));
+                pdcch_dmrs_ref = PDCCH.getPDCCHDMRS(c0Carrier, pdcch, al);
+                pdcch_dmrs_ref = pdcch_dmrs_ref(:, c);
+                h_est = pdcch_dmrs .* conj(pdcch_dmrs_ref);
+                h_est = h_est + [0, 0, 0];
+                h_est = h_est(:);
+
+                % Equalize PDCCH
+                pdcch_symbols = slot_grid(pdcch_indices{al}(:, c));
+                pdcch_symbols_eq = pdcch_symbols ./ h_est;
+
+                % Decode PDCCH
+                empty_dci = PDCCH.DCI(pdcch.CORESET.N_RB);
+                N_dci = empty_dci.getDCISize();
+                [dci_bits, dci_crc] = PDCCH.decodePDCCH(pdcch_symbols_eq, N_dci,...
+                    pdcch.DMRS_scrambling_ID, pdcch.RNTI, 1e-2);
+
+                % Decode DCI
+                dci = PDCCH.decodeDCI(dci_bits, empty_dci);
+                if dci_crc == 0
+                    break;
+                end
+            end
+            if dci_crc == 0
+                break;
+            end
+        end
+        if dci_crc == 0
+            break;
+        end
     end
+    
+    if dci_crc ~= 0
+        error("Could not decode DCI");
+    end
+   
+    fprintf("PDCCH found in aggregation level: %d and candidate: %d\n", ...
+        pdcch.SearchSpace.AggregationLevels(al), c);
+    disp(dci);
 end

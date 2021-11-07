@@ -81,7 +81,7 @@ function output = codedBitsDeinterleaving(input)
 end
 
 function output = bitSelection(input, K, N)
-% Bit selection. 3GPP 28.212 5.4.1.2.
+% Bit selection. 3GPP 38.212 5.4.1.2.
 % Inputs:
 %   imput   : a vector representing the input selquence
 %   K       : a number representing the number of information bits
@@ -95,7 +95,7 @@ function output = bitSelection(input, K, N)
     else
         if K/E <= 7/16  % puncturing
             output = zeros(N, 1, class(input));
-            output(end-E+1:end) = inE;
+            output(end-E+1:end) = input;
         else            % shortening
             output = 1e20*ones(N, 1, class(input));
             output(1:E) = input;
