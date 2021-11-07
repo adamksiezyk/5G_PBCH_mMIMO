@@ -260,22 +260,12 @@ for i = 1:length(SSB_indices)
     c0Carrier.NCellID = cell_id;
     
     % Find Type0-PDCCH monitoring occasions. 3GPP 28.213 13
-    [n0, nC, is_occasion, frame_offset] = ...
-        PDCCH.getPDCCH0MonitoringOccasions(lsb_idx, iSSB, SCS_pair, ...
-        pattern, N_sym_CORESET, MIB.NFrame);
-    
     N_symbols = size(resource_grid, 2);
-    N_slots = ceil(N_symbols / c0Carrier.SymbolsPerSlot);
-    N_mon_slots = 2;
-    mon_slots = n0 + (0:N_mon_slots-1)' + (0:2*c0Carrier.SlotsPerFrame:(N_slots-n0-1));
-    mon_slots = mon_slots(:)';
-    mon_symbols = mon_slots*c0Carrier.SymbolsPerSlot + (1:c0Carrier.SymbolsPerSlot)';
-    mon_symbols = mon_symbols(:)';
-    mon_symbols(mon_symbols > N_symbols) = [];
+    [mon_slots, mon_symbols, mon_subcarriers] = ...
+        PDCCH.getMonitoringOccasionsResources(lsb_idx, iSSB, SCS_pair, ...
+        MIB.NFrame, pattern, N_sym_CORESET, N_RB_CORESET, N_RB_CORESET_min, ...
+        CORESET_RB_offset, N_symbols, signal_info, c0Carrier);
     
-    mon_subcarriers = (N_RB_CORESET_min - 20*signal_info.SCS / ...
-        SCS_common)*signal_info.N_subcarriers_per_RB/2 + CORESET_RB_offset * ...
-        signal_info.N_subcarriers_per_RB + [1:N_RB_CORESET*12];
     mon_grid = resource_grid(mon_subcarriers, ...
         mon_symbols);
     
