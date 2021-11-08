@@ -2,7 +2,7 @@ clear variables; close all;
 %% Load waveform and initial parameters
 fprintf(" -- Loading waveform and initial parameters --\n");
 
-show_plots = false;
+show_plots = true;
 signal_choice = 5;
 if (signal_choice == 1)
     % Signal deflections from radar measurements
@@ -259,13 +259,12 @@ for i = 1:length(SSB_indices)
     c0Carrier.NFrame = MIB.NFrame;
     c0Carrier.NCellID = cell_id;
     
-    % Find Type0-PDCCH monitoring occasions. 3GPP 28.213 13
+    % Find Type0-PDCCH monitoring occasions. 3GPP 28.213
     N_symbols = size(resource_grid, 2);
     [mon_slots, mon_symbols, mon_subcarriers] = ...
         PDCCH.getMonitoringOccasionsResources(lsb_idx, iSSB, SCS_pair, ...
         MIB.NFrame, pattern, N_sym_CORESET, N_RB_CORESET, N_RB_CORESET_min, ...
         CORESET_RB_offset, N_symbols, signal_info, c0Carrier);
-    
     mon_grid = resource_grid(mon_subcarriers, ...
         mon_symbols);
     
@@ -273,53 +272,11 @@ for i = 1:length(SSB_indices)
     [pdcch_indices, pdcch_dmrs_indices]  = PDCCH.getPDCCHResources(...
         c0Carrier, pdcch);
     
-    dci_crc = 1;
-    for monitoring_slot = 0:length(mon_slots)-1
-        % Get PDCCH candidates according to TS 38.213 Section 10.1
-        slot_grid = mon_grid(:, (1:c0Carrier.SymbolsPerSlot) + ...
-            c0Carrier.SymbolsPerSlot*monitoring_slot, :);
-        slot_grid = slot_grid/max(abs(slot_grid(:)));
-
-        for al = 1:5
-            for c = 1:pdcch.SearchSpace.NumCandidates(al)
-                % Estimate channel using PDCCH DM-RS        
-                pdcch_dmrs = slot_grid(pdcch_dmrs_indices{al}(:, c));
-                pdcch_dmrs_ref = PDCCH.getPDCCHDMRS(c0Carrier, pdcch, al);
-                pdcch_dmrs_ref = pdcch_dmrs_ref(:, c);
-                h_est = pdcch_dmrs .* conj(pdcch_dmrs_ref);
-                h_est = h_est + [0, 0, 0];
-                h_est = h_est(:);
-
-                % Equalize PDCCH
-                pdcch_symbols = slot_grid(pdcch_indices{al}(:, c));
-                pdcch_symbols_eq = pdcch_symbols ./ h_est;
-
-                % Decode PDCCH
-                empty_dci = PDCCH.DCI(pdcch.CORESET.N_RB);
-                N_dci = empty_dci.getDCISize();
-                [dci_bits, dci_crc] = PDCCH.decodePDCCH(pdcch_symbols_eq, N_dci,...
-                    pdcch.DMRS_scrambling_ID, pdcch.RNTI, 1e-2);
-
-                % Decode DCI
-                dci = PDCCH.decodeDCI(dci_bits, empty_dci);
-                if dci_crc == 0
-                    break;
-                end
-            end
-            if dci_crc == 0
-                break;
-            end
-        end
-        if dci_crc == 0
-            break;
-        end
-    end
-    
+    % Decode PDCCH
+    [dci, dci_crc] = processing.decodePDCCH(mon_grid, c0Carrier, pdcch, ...
+    pdcch_dmrs_indices, pdcch_indices, mon_slots, show_plots);
     if dci_crc ~= 0
-        error("Could not decode DCI");
+        fprintf("Could not decode DCI\n");
+        continue;
     end
-   
-    fprintf("PDCCH found in aggregation level: %d and candidate: %d\n", ...
-        pdcch.SearchSpace.AggregationLevels(al), c);
-    disp(dci);
 end
