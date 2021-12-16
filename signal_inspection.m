@@ -222,4 +222,8 @@ for i = 1:length(SSB_indices)
         fprintf("Could not decode DCI\n");
         continue;
     end
+    
+    % Get PDSCH parameters
+    [pdsch, K_0] = PDSCH.getPDSCHResources(dci, pdcch.CORESET.N_RB, ...
+        MIB.DMRSTypeAPosition, pattern);
 end
