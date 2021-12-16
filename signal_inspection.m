@@ -119,7 +119,7 @@ for i = 1:length(SSB_indices)
     fprintf("CellID = %d\n", cell_id);
 
     % Decode BCH
-    [MIB, PBCH_bits, iSSB] = processing.decodePBCH(signal_info, SSB_grid, ...
+    [MIB, ~, iSSB] = processing.decodePBCH(signal_info, SSB_grid, ...
         cell_id, show_plots);
     
     if isempty(MIB)

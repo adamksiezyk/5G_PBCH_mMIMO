@@ -1,4 +1,4 @@
-function [MIB, PBCH_bits, iSSB] = decodePBCH(signal_info, SSB_grid, ...
+function [MIB, tr_block, iSSB, HFR] = decodePBCH(signal_info, SSB_grid, ...
     cell_id, show_plots_)
 %DECODEPBCH Decodes the Physical Broadcast Channel.
 % Inputs:
@@ -8,8 +8,9 @@ function [MIB, PBCH_bits, iSSB] = decodePBCH(signal_info, SSB_grid, ...
 %   show_plots_     : a boolean, if true plots are shown
 % Outputs:
 %   MIB         : a vector representing the decoded MIBs
-%   PBCH_bits   : a matrix representing the demodulated PBCH bits
+%   tr_block    : a matrix representing the BCH transport block
 %   iSSB        : a vector that represents the detected iSSBs
+%   HFR         : a logical representing the half frame bit
 
     if nargin < 3
         show_plots = false;
@@ -63,7 +64,7 @@ function [MIB, PBCH_bits, iSSB] = decodePBCH(signal_info, SSB_grid, ...
 
     % Check BCH CRC
     fprintf(" -- BCH decoding --\n");
-    [~, BCH_CRC, tr_block, SFN_4_LSB, n_half_frame, kSSB_MSB] = ...
+    [~, BCH_CRC, tr_block, SFN_4_LSB, HFR, kSSB_MSB] = ...
         BCH.decodeBCH(PBCH_bits, signal_info.SSB.L_SSB, cell_id);
     fprintf("CRC = %d\n", BCH_CRC);
     if BCH_CRC ~= 0
