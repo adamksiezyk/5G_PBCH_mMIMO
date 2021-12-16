@@ -30,7 +30,7 @@ function synthetic_grid = synthesiseSSB(signal_info, PBCH_bits, ...
     synthetic_SSB = zeros(SSB.N_subcarriers_SSB, SSB.N_symbols_SSB);
     synthetic_SSB(57:183, 1) = 1 * PSS.generatePSS(NID2);
     synthetic_SSB(57:183, 3) = 2 * SSS.generateSSS(NID1, NID2).';
-    synthetic_SSB(PBCH_pos) = 3 * nrPBCH(PBCH_bits.', cell_id, v);
+    synthetic_SSB(PBCH_pos) = 3 * nrPBCH(PBCH_bits, cell_id, v);
     synthetic_SSB(PBCH_DMRS_pos) = 4 * PBCH.generatePBCHDMRS(cell_id, iSSB);
 
     if show_plots
