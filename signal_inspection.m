@@ -3,66 +3,13 @@ clear variables; close all;
 fprintf(" -- Loading waveform and initial parameters --\n");
 
 show_plots = true;
-signal_choice = 5;
+signal_choice = 1;
 if (signal_choice == 1)
     % Signal deflections from radar measurements
-    load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
-    waveform = waveform(1:25.0e-3*61.44e6).';    % First 3 frames
+    load('signals/ssb_5ms_periodicity/2021-12-09_12-31-43_GPS_Fc3440.0_G45.0_Bw50.0_Fn000_ch1.mat');
+%     waveform = waveform(1:25.0e-3*61.44e6).';    % First 3 frames
 %     waveform = waveform.';
     
-    signal_info = SignalInfo;
-    signal_info.fs = 61.44e6;
-    signal_info.fc = 3440e6;
-    signal_info.BW = 50e6;
-    signal_info.N_FFT = 2048;
-    signal_info.SCS = 30e3;
-    
-    signal_info.SSB.SSB_case = "Case C";
-    signal_info.SSB.subcarrier_offset = -507;
-    
-    PSS_detection_threshold = 2e5;      % Threshold for SSB detection
-    int_CFO = 0;                        % Integer Center Frequency Offset
-    
-    available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
-        90, 100] * 1e6;             % 3GPP 38.101-1 5.3.5-1
-elseif (signal_choice == 2)
-    % Line of sight signal from radar measurements with deleted uplink
-    load('signals/Fn001_chan1.mat');
-    waveform = chan1;
-    
-    signal_info = SignalInfo;
-    signal_info.fs = 61.44e6;
-    signal_info.fc = 3440e6;
-    signal_info.BW = 50e6;
-    signal_info.N_FFT = 2048;
-    signal_info.SCS = 30e3;
-    
-    signal_info.SSB.SSB_case = "Case C";
-    signal_info.SSB.subcarrier_offset = -507;
-    
-    PSS_detection_threshold = 2e5;      % Threshold for SSB detection
-    int_CFO = 0;                        % Integer Center Frequency Offset
-    
-    available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
-        90, 100] * 1e6;             % 3GPP 38.101-1 5.3.5-1
-elseif (signal_choice == 3)
-    % Orange Krków 5G signal
-    load('signals/NR_DL_2159.91MHz_10MHz.mat'); %ncellid = 440
-    signal_info = SignalInfo;
-    signal_info.fs = 15360000;
-    signal_info.fc = 2159.91e6;
-    signal_info.BW = 10e6;
-    signal_info.N_FFT = 1024;
-    signal_info.SCS = 15e3;
-    
-    signal_info.SSB.SSB_case = "Case C";
-    signal_info.SSB.subcarrier_offset = -48;
-    
-    PSS_detection_threshold = 60;   % Threshold for SSB detection
-    int_CFO = 0;                    % Integer Center Frequency Offset
-elseif (signal_choice == 4)
-    % Radar measurements, signals diflected by drone
-    load('signals/dron_monostatycznie_beamforming/2021-05-21_15-45-36_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch1.mat');
     signal_info = SignalInfo;
     signal_info.fs = 61.44e6;
     signal_info.fc = 3440e6;
@@ -78,7 +25,22 @@ elseif (signal_choice == 4)
     
     available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
         90, 100] * 1e6;             % 3GPP 38.101-1 5.3.5-1
-elseif (signal_choice == 5)
+elseif (signal_choice == 2)
+    % Orange Krków 5G signal
+    load('signals/NR_DL_2159.91MHz_10MHz.mat'); %ncellid = 440
+    signal_info = SignalInfo;
+    signal_info.fs = 15360000;
+    signal_info.fc = 2159.91e6;
+    signal_info.BW = 10e6;
+    signal_info.N_FFT = 1024;
+    signal_info.SCS = 15e3;
+    
+    signal_info.SSB.SSB_case = "Case C";
+    signal_info.SSB.subcarrier_offset = -48;
+    
+    PSS_detection_threshold = 60;   % Threshold for SSB detection
+    int_CFO = 0;                    % Integer Center Frequency Offset
+elseif (signal_choice == 3)
     % Synthetic signal with beamforming and SIB1
     load('signals/matlab_5g_downlink_5MHzBW_30kHzSCS.mat');
     waveform = tmp_waveform.';
@@ -97,25 +59,6 @@ elseif (signal_choice == 5)
     int_CFO = 0;                    % Integer Center Frequency Offset
     
     available_channel_BWs = [5, 10, 40] * 1e6; % 3GPP 38.101-1 5.3.5-1
-elseif (signal_choice == 6)
-    % Radar measurements, signals diflected by drone
-    load('signals/Keysight/iq_Fs61,44_Fc3440_BW50_SCS30_Beam2_fully_allocated.mat');
-    waveform = double(Y.');
-    signal_info = SignalInfo;
-    signal_info.fs = 61.44e6;
-    signal_info.fc = 3440e6;
-    signal_info.BW = 50e6;
-    signal_info.N_FFT = 2048;
-    signal_info.SCS = 30e3;
-    
-    signal_info.SSB.SSB_case = "Case C";
-    signal_info.SSB.subcarrier_offset = -507;
-    
-    PSS_detection_threshold = 0;    % Threshold for SSB detection
-    int_CFO = 0;                    % Integer Center Frequency Offset
-    
-    available_channel_BWs = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, ...
-        90, 100] * 1e6;             % 3GPP 38.101-1 5.3.5-1
 end
 
 N = length(waveform);

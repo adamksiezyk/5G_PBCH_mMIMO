@@ -5,8 +5,8 @@ fprintf(" -- Loading waveform and initial parameters --\n");
 show_plots = false;
 
 % Signal parameters
-load('signals/2021-05-21_11-05-13_GPS_Fc3440.0_G50.0_Bw50.0_Fn000_ch2_spline_61.44MHz.mat');
-waveform = waveform(1:25.0e-3*61.44e6).';   % First 2.5 frames
+load('signals/ssb_5ms_periodicity/2021-12-09_12-31-43_GPS_Fc3440.0_G45.0_Bw50.0_Fn000_ch1.mat');
+waveform = waveform(1:5.0e-3*61.44e6);   % First 2.5 frames
 N = length(waveform);
 signal_info = SignalInfo;
 signal_info.fs = 61.44e6;
@@ -19,8 +19,8 @@ signal_info.SSB.SSB_case = "Case C";
 signal_info.SSB.subcarrier_offset = -507;
 signal_info.SSB.L_SSB = utils.getLSSB(signal_info.fc);
 
-PSS_detection_threshold = 2e5;      % Threshold for SSB detection
-int_CFO = 0;                        % Integer Center Frequency Offset
+PSS_detection_threshold = 0;    % Threshold for SSB detection
+int_CFO = 0;                    % Integer Center Frequency Offset
 
 %% Plot the signal PSD and Spectrogram
 if show_plots
