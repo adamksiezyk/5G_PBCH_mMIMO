@@ -60,7 +60,7 @@ function [MIB, tr_block, iSSB, HFR] = decodePBCH(signal_info, SSB_grid, ...
 
     % Decode PBCH
     v = mod(iSSB, signal_info.SSB.L_SSB);
-    PBCH_bits = nrPBCHDecode(PBCH_eq, cell_id, v, 1e-2).';
+    PBCH_bits = PBCH.decodePBCH(PBCH_eq, cell_id, v, 1e-2).';
 
     % Check BCH CRC
     fprintf(" -- BCH decoding --\n");
