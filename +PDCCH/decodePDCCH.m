@@ -13,8 +13,8 @@ function [dci_bits, err_flag] = decodePDCCH(symbols, N_DCI, N_ID, N_RNTI, n_var)
 
     % Decode PDCCH - etsi 38.211
     % 7.3.2.4 Demodulation
-    modulation_order = 4;   % QPSK
-    dci_cw = utils.demodulateQAM(symbols, modulation_order, n_var);
+    modulation = 'QPSK';
+    dci_cw = utils.demodulate(symbols, modulation, n_var);
     
     % 7.3.2.3 Descrambling
     M = length(dci_cw);
