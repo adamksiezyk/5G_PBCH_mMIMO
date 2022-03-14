@@ -17,7 +17,7 @@ function int_CFO = estimateIntegerCFO(waveform, signal_info, show_plots_)
     offsets = -10:10;
     N = min([length(waveform), 25e-3*signal_info.fs]);
     search_results = utils.findSSBSubcarrierOffset(waveform(1:N), ...
-        signal_info.N_FFT, signal_info.SSB.subcarrier_offset+offsets);
+        signal_info.N_FFT, signal_info.N_CP, signal_info.SSB.subcarrier_offset+offsets);
 
     [max_val, max_ind] = max(search_results(:, 1));
     int_CFO = offsets(max_ind);
