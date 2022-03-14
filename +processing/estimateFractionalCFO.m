@@ -15,14 +15,21 @@ function fractional_CFO = estimateFractionalCFO(waveform, signal_info, ...
         show_plots = show_plots_;
     end
 
-    [fractional_CFO, CP_corr] = utils.estimateFractionalCFO(waveform, ...
-        signal_info.fs, signal_info.SCS, signal_info.SSB_frequency_offset);
+    [fractional_CFO, CP_corr, indv_CFO] = utils.estimateFractionalCFO(waveform, ...
+        signal_info.fs, signal_info.SCS);
 
     if show_plots
         figure;
         plot(abs(CP_corr));
         title('Signal autocorrelation using CP of SSB');
         xlabel('Sample index n');
+        
+        figure;
+        plot(indv_CFO, 'o-');
+        title('Estimated fractional CFO');
+        xlabel('sample index n');
+        ylabel('[Hz]');
+        
         fprintf("Press ENTER to continue ...\n");
         pause;
     end
