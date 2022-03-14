@@ -1,28 +1,18 @@
-function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
-    N_CP, threshold, subcarrier_offset, show_plots_)
+function [pss_indices, NID2, corrPSS] = detectAndDecodePSS(waveform, N_FFT, ...
+    N_CP, threshold)
 %DETECTANDDECODEPSS Detect and decode PSS sequences in waveform
 % Inputs:
 %   waveform            : a vector representing the 5G signal
 %   N_FFT               : a number representing the FFT size
 %   N_CP                : a number representing the CP lenght
 %   threshold           : a number representing the threshold for sequence
-%   correlation detection, if threshold == 0 then only the best PSS index
-%   and it's NID2 are returned
-%   subcarrier_offset   : a number representing the subcarrier offset of
-%   the PSS sequence in the 5G signal
-%   show_plots_         : a boolean representing the show plots flag
-%   default is true
+%   correlation detection, if threshold == 0 then only the best PSS is
+%   detected
 % Outputs:
-%   pss_indices     : a vector (or a single number if threshold == 0)
-%   representing the detected PSS indexes
-%   NID2            : a vector (or a single number if threshold == 0)
-%   representing the detected PSS NID2
-
-    if nargin<6
-        show_plots = true;
-    else
-        show_plots = show_plots_;
-    end
+%   pss_indices     : a vector representing the detected PSS indexes
+%   NID2            : a vector representing the detected PSS NID2
+%   corrPSS         : a matrix (n x m) representing the correlation
+%   sequence for the n-th NID2
 
     if isrow(waveform)
         waveform = waveform.';
@@ -32,7 +22,7 @@ function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
     
     pss_ref = [PSS.generatePSS(0).', PSS.generatePSS(1).', ...
         PSS.generatePSS(2).'];
-    pss_start = N_FFT/2 - floor(N_PSS/2) + subcarrier_offset;
+    pss_start = N_FFT/2 - floor(N_PSS/2);
     m_seqs = zeros(N_FFT, 3);
     m_seqs(pss_start:pss_start+N_PSS-1, :) = pss_ref;
 
@@ -42,38 +32,13 @@ function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
     corrPSS = [abs(conv(waveform, conj(time_seqs(end:-1:1, 1)))), ...
         abs(conv(waveform, conj(time_seqs(end:-1:1, 2)))), ...
         abs(conv(waveform, conj(time_seqs(end:-1:1, 3))))];
-    
-    if show_plots
-        figure;
-        subplot(311);
-        hold on;
-        plot(corrPSS(:, 1));
-        title('Cross-correlation with sequence N_{ID}^{(2)} = 0');
-        xlabel('sample index n');
-        subplot(312);
-        hold on;
-        plot(corrPSS(:, 2));
-        title('Cross-correlation with sequence N_{ID}^{(2)} = 1');
-        xlabel('sample index n');
-        subplot(313);
-        hold on;
-        plot(corrPSS(:, 3));
-        title('Cross-correlation with sequence N_{ID}^{(2)} = 2');
-        xlabel('sample index n');
-    end
 
     if threshold == 0
         [max_val, time_offsets] = max(corrPSS);
-        [max_corr, max_NID2] = max(max_val);
+        [~, max_NID2] = max(max_val);
         pos = time_offsets(max_NID2);
         pss_indices = pos - N_sym + 1;
         NID2 = max_NID2 - 1;
-        
-        if show_plots
-            subplot(3, 1, max_NID2);
-            plot(pos, max_corr, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
-            legend("correlation result", "N_{ID}^{(2)}");
-        end
     else
         %find index of every detected pss sequence 
         idx = 1;
@@ -86,12 +51,6 @@ function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
                 indices(idx) = pos;
                 NID2(idx) = max_NID2 - 1;
                 idx = idx + 1;
-
-                if show_plots
-                    subplot(3, 1, max_NID2);
-                    plot(pos, max_corr, 'kx', 'LineWidth', 2, 'MarkerSize', 8);
-                    legend("correlation result", "N_{ID}^{(2)}");
-                end
             end
         end
         pss_indices = indices - N_sym + 1;
