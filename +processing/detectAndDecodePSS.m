@@ -49,8 +49,10 @@ function [pss_indices, NID2] = detectAndDecodePSS(waveform, N_FFT, ...
 
     if show_plots
         for i = 1:length(NID2)
-            subplot(3, 1, NID2(i));
-            plot(pss_indices(i), corrPSS(i), 'kx', 'LineWidth', 2, 'MarkerSize', 8);
+            NID2_id = NID2(i)+1;
+            idx = pss_indices(i) + N_FFT + N_CP - 1;
+            subplot(3, 1, NID2_id);
+            plot(idx, corrPSS(idx, NID2_id), 'kx', 'LineWidth', 2, 'MarkerSize', 8);
             legend("correlation result", "N_{ID}^{(2)}");
         end
     end
