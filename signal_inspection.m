@@ -77,6 +77,13 @@ if show_plots
     pause;
 end
 
+%% Estimation and correct the fractional CFO
+fprintf(" -- Fractional CFO estimation and correction --\n");
+fractional_CFO = processing.estimateFractionalCFO(waveform, signal_info, ...
+    show_plots);
+fprintf("Fractional CFO = %.2f\n", fractional_CFO);
+waveform = waveform .* exp(-1j*2*pi*fractional_CFO/signal_info.fs*(0:N-1));
+
 %% Find SSB in frequency domain
 if isempty(signal_info.SSB.subcarrier_offset)
     fprintf(" -- Find SSB in frequency domian --\n");
@@ -93,13 +100,6 @@ if (exist('int_CFO', 'var') ~= 1)
 end
 fprintf("Integer CFO: %d\n", int_CFO);
 waveform = waveform .* exp(-1j*2*pi*int_CFO/signal_info.N_FFT*(0:N-1));
-
-%% Estimation and correct the fractional CFO
-fprintf(" -- Fractional CFO estimation and correction --\n");
-fractional_CFO = processing.estimateFractionalCFO(waveform, signal_info, ...
-    show_plots);
-fprintf("Fractional CFO = %.2f\n", fractional_CFO);
-waveform = waveform .* exp(-1j*2*pi*fractional_CFO/signal_info.fs*(0:N-1));
 
 %% Find SSB position in time domain and detect PSS
 fprintf(" -- Find SSB position in time domain --\n");
