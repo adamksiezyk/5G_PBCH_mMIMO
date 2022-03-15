@@ -20,12 +20,13 @@ function [fractional_CFO, CP_corr, indv_CFO] = estimateFractionalCFO(waveform, .
     N_CP = utils.getCPLength(scs, sample_rate);
     N_FFT = 2048;
     N_sym = N_FFT + N_CP;
-    N_corr = sample_rate * 10e-3;   % 1 5G frame
+    N = length(waveform);
+    N_corr = min([N-N_sym, sample_rate*10e-3]);   % 1 5G frame or whole waveform
     CP_corr = zeros(1, N_corr);
     for n = 1:N_corr
         n1 = n:n+N_CP-1; 
         n2 = n1 + N_FFT;
-        CP_corr(n) = abs(sum( waveform(n1) .* conj(waveform(n2))));
+        CP_corr(n) = abs(sum(waveform(n1) .* conj(waveform(n2))));
     end
 
     %find a few max peaks
