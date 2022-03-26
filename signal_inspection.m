@@ -18,7 +18,7 @@ if (signal_choice == 1)
     signal_info.SCS = 30e3;
     
     signal_info.SSB.SSB_case = "Case C";
-    signal_info.SSB.subcarrier_offset = -507;
+    signal_info.SSB.subcarrier_offset = -517;
     
     PSS_detection_threshold = 0;    % Threshold for SSB detection
     int_CFO = 0;                    % Integer Center Frequency Offset
